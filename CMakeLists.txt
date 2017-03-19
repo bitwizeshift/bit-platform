@@ -69,11 +69,14 @@ set(headers
   include/bit/platform/threading/unlock_guard.hpp
   include/bit/platform/filesystem/filesystem.hpp
   include/bit/platform/filesystem/null_file_device.hpp
+  include/bit/platform/filesystem/disk_file_device.hpp
 )
 
 if( WIN32 )
   set(platform_source_files
     src/bit/platform/threading/win32/thread.cpp
+    src/bit/platform/filesystem/win32/disk_file_device.cpp
+    src/bit/platform/filesystem/win32/disk_file.cpp
   )
 elseif( UNIX )
   set(platform_source_files

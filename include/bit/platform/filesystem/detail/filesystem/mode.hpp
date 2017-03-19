@@ -16,6 +16,7 @@ namespace bit {
     enum class mode {
       read  = 0x1, //!< read
       write = 0x2, //!< write
+      append = 0x4,
     };
 
     //------------------------------------------------------------------------

@@ -1,13 +1,12 @@
 /**
- * \file null_file.hpp
+ * \file disk_file.hpp
  *
- * \brief This header contains an implementation of the abstract_file
- *        that follows the null-object pattern.
+ * \brief This header contains an implementation of an underlying system file
  *
  * \author Matthew Rodusek (matthew.rodusek@gmail.com)
  */
-#ifndef SRC_BIT_PLATFORM_FILESYSTEM_NULL_FILE_HPP
-#define SRC_BIT_PLATFORM_FILESYSTEM_NULL_FILE_HPP
+#ifndef SRC_BIT_PLATFORM_FILESYSTEM_WIN32_DISK_FILE_HPP
+#define SRC_BIT_PLATFORM_FILESYSTEM_WIN32_DISK_FILE_HPP
 
 #include <bit/platform/filesystem/filesystem.hpp>
 
@@ -15,10 +14,9 @@ namespace bit {
   namespace platform {
 
     //////////////////////////////////////////////////////////////////////////
-    /// \brief A null file that only ever reads an empty buffer, and writes
-    ///        no data.
+    /// \brief A low-level disk device implementation for Windows
     //////////////////////////////////////////////////////////////////////////
-    class null_file : public abstract_file
+    class disk_file : public abstract_file
     {
       //----------------------------------------------------------------------
       // Public Member Types
@@ -27,6 +25,17 @@ namespace bit {
 
       using size_type  = abstract_file::size_type;
       using index_type = abstract_file::index_type;
+
+      //----------------------------------------------------------------------
+      // Constructor
+      //----------------------------------------------------------------------
+    public:
+
+      /// \brief Opens a disk_file at the given \p path with mode \p m
+      ///
+      /// \param path the path to the file
+      /// \param m the mode of the file
+      explicit disk_file( stl::string_view path, mode m );
 
       //----------------------------------------------------------------------
       // File API
@@ -79,9 +88,18 @@ namespace bit {
       ///
       /// \param bytes the number of bytes to skip
       void skip( index_type bytes ) override;
+
+      //----------------------------------------------------------------------
+      // Private Members
+      //----------------------------------------------------------------------
+    private:
+
+      using native_handle = void*;
+
+      native_handle m_file; ///< The underlying file handle
     };
 
   } // namespace platform
 } // namespace bit
 
-#endif /* SRC_BIT_PLATFORM_FILESYSTEM_NULL_FILE_HPP */
+#endif /* SRC_BIT_PLATFORM_FILESYSTEM_WIN32_DISK_FILE_HPP */
