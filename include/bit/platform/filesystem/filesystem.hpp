@@ -136,7 +136,8 @@ namespace bit {
       /// \param devices the devices to use to open the file
       /// \param access the file access to use
       ///abstract_fileturn the opened file
-      file open( stl::string_view path, device_list devices, mode access );
+      template<std::size_t N>
+      file open( stl::string_view path, const char*const (&devices)[N], mode access );
 
       /// \brief Opens a file synchronously at the given \p path, with the
       ///        specified \p devices.
@@ -148,7 +149,8 @@ namespace bit {
       /// \param devices the devices to use to open the file
       /// \param access the file access to use
       ///abstract_fileturn the opened file
-      file open( sync_t tag, stl::string_view path, device_list devices, mode access );
+      template<std::size_t N>
+      file open( sync_t tag, stl::string_view path, const char*const (&devices)[N], mode access );
 
       /// \brief Opens a file to read asynchronously at the given \p path, with the
       ///        specified \p devices.
@@ -158,7 +160,8 @@ namespace bit {
       /// \param devices the devices to use to open the file
       /// \param access the file access to use
       /// \return the opened file
-      async_file open( async_t tag, stl::string_view path, device_list devices, mode access );
+      template<std::size_t N>
+      async_file open( async_t tag, stl::string_view path, const char*const (&devices)[N], mode access );
 
       //----------------------------------------------------------------------
       // File Closing
@@ -189,6 +192,14 @@ namespace bit {
       // Private Member Functions
       //----------------------------------------------------------------------
     public:
+
+      file open( sync_t tag, stl::string_view path, const char*const* devices,
+                 std::size_t size, mode access );
+
+      async_file open( async_t tag, stl::string_view path, const char*const* devices,
+                       std::size_t size, mode access );
+
+      //----------------------------------------------------------------------
 
       /// \brief Recursively closes and destructs an underlying abstract_file
       ///

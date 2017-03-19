@@ -103,6 +103,10 @@ inline void bit::platform::file::skip( index_type bytes )
   m_file->skip(bytes);
 }
 
+//----------------------------------------------------------------------------
+// Private Member Functions
+//----------------------------------------------------------------------------
+
 inline bit::platform::abstract_file* bit::platform::file::underlying()
   noexcept
 {

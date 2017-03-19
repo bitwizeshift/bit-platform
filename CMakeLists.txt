@@ -115,7 +115,7 @@ set_target_properties(platform PROPERTIES
   CXX_STANDARD_REQUIRED true
 )
 
-target_include_directories(platform PRIVATE
+target_include_directories(platform PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
 )

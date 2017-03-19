@@ -23,12 +23,33 @@ inline bit::platform::filesystem::size_type
 // File Opening
 //----------------------------------------------------------------------------
 
+template<std::size_t N>
 inline bit::platform::file
   bit::platform::filesystem::open( stl::string_view path,
-                                   device_list devices,
+                                   const char*const (&devices)[N],
                                    mode access )
 {
-  return open( sync, path, devices, access );
+  return open( sync, path, devices, N, access );
+}
+
+template<std::size_t N>
+inline bit::platform::file
+  bit::platform::filesystem::open( sync_t,
+                                   stl::string_view path,
+                                   const char*const (&devices)[N],
+                                   mode access )
+{
+  return open( sync, path, devices, N, access );
+}
+
+template<std::size_t N>
+inline bit::platform::async_file
+  bit::platform::filesystem::open( async_t,
+                                   stl::string_view path,
+                                   const char*const (&devices)[N],
+                                   mode access )
+{
+  return open( async, path, devices, N, access );
 }
 
 //----------------------------------------------------------------------------

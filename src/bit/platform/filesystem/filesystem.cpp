@@ -50,6 +50,7 @@ void bit::platform::file::close()
 {
   if(m_file) {
     m_filesystem->close(*this);
+    m_file = nullptr;
   }
 }
 
@@ -115,19 +116,21 @@ void bit::platform::filesystem::unmount( file_device* device )
 bit::platform::file
   bit::platform::filesystem::open( sync_t,
                                    stl::string_view path,
-                                   device_list devices,
+                                   const char*const* devices,
+                                   std::size_t size,
                                    mode access )
 {
-  BIT_ASSERT( !devices.empty(), "filesystem::open: device list cannot be empty" );
+  BIT_ASSERT( size != 0, "filesystem::open: device list cannot be empty" );
 
   auto devs     = stl::span<file_device*>{ m_devices.get(), m_current };
   auto device   = find_device(devices[0], devs);
   auto abstract = device->open( path, access );
 
   auto i = 1;
-  while( i < devices.size() ) {
+  while( i < size ) {
     device   = find_device(devices[i], devs);
     abstract = device->piggyback(abstract);
+    ++i;
   }
 
   return file{ abstract, this };
@@ -138,17 +141,18 @@ bit::platform::file
 bit::platform::async_file
   bit::platform::filesystem::open( async_t,
                                    stl::string_view path,
-                                   device_list devices,
+                                   const char*const* devices,
+                                   std::size_t size,
                                    mode access )
 {
-  BIT_ASSERT( !devices.empty(), "filesystem::open: device list cannot be empty" );
+  BIT_ASSERT( size != 0, "filesystem::open: device list cannot be empty" );
 
   auto devs     = stl::span<file_device*>{ m_devices.get(), m_current };
   auto device   = find_device(devices[0], devs);
   auto abstract = device->open_async( path, access );
 
   auto i = 1;
-  while( i < devices.size() ) {
+  while( i < size ) {
     device   = find_device(devices[i], devs);
     abstract = device->piggyback_async(abstract);
   }
@@ -162,9 +166,10 @@ bit::platform::async_file
 
 void bit::platform::filesystem::close( file& f )
 {
-  auto current = f.underlying();
+  auto current = f.m_file;
   if( current ) {
     current->close();
+    f.m_file = nullptr;
   }
 
   destroy_file( current );
