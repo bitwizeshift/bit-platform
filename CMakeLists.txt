@@ -64,12 +64,30 @@ make_version_header("${CMAKE_CURRENT_BINARY_DIR}/include/bit/platform/version.hp
 set(headers
   include/bit/platform/threading/null_mutex.hpp
   include/bit/platform/threading/shared_mutex.hpp
+  include/bit/platform/threading/spin_lock.hpp
+  include/bit/platform/threading/thread.hpp
   include/bit/platform/threading/unlock_guard.hpp
 )
 
-set(source_files
+if( WIN32 )
+  set(platform_source_files
+    src/bit/platform/threading/win32/thread.cpp
+  )
+elseif( UNIX )
+  set(platform_source_files
+    src/bit/platform/threading/posix/thread.cpp
+  )
+elseif( APPLE )
+  set(platform_source_files
+    src/bit/platform/threading/mac/thread.cpp
+  )
+endif()
 
+set(source_files
+  src/bit/platform/threading/spin_lock.cpp
+  ${platform_source_files}
 )
+
 
 add_library(platform ${source_files})
 add_library(bit::platform ALIAS platform)
