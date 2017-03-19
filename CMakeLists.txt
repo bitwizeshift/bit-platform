@@ -62,14 +62,18 @@ make_version_header("${CMAKE_CURRENT_BINARY_DIR}/include/bit/platform/version.hp
 )
 
 set(headers
+  # threading
   include/bit/platform/threading/null_mutex.hpp
   include/bit/platform/threading/shared_mutex.hpp
   include/bit/platform/threading/spin_lock.hpp
   include/bit/platform/threading/thread.hpp
   include/bit/platform/threading/unlock_guard.hpp
+
+  # filesystem
   include/bit/platform/filesystem/filesystem.hpp
   include/bit/platform/filesystem/null_file_device.hpp
   include/bit/platform/filesystem/disk_file_device.hpp
+  include/bit/platform/filesystem/crypto_file_device.hpp
 )
 
 if( WIN32 )
@@ -93,8 +97,10 @@ endif()
 set(source_files
   src/bit/platform/threading/spin_lock.cpp
   src/bit/platform/filesystem/filesystem.cpp
-  src/bit/platform/filesystem/null_file_device.cpp
   src/bit/platform/filesystem/null_file.cpp
+  src/bit/platform/filesystem/null_file_device.cpp
+  src/bit/platform/filesystem/crypto_file.cpp
+  src/bit/platform/filesystem/crypto_file_device.cpp
   ${platform_source_files}
 )
 
