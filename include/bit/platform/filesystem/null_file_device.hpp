@@ -39,13 +39,17 @@ namespace bit {
       //----------------------------------------------------------------------
     public:
 
-      /// \brief
+      /// \brief Opens a file at the given \p path with the given mode \p m
       ///
-      /// \param path
-      /// \param m
-      /// \return
+      /// \param path the path to the file to open
+      /// \param m the mode of the file
+      /// \return a pointer to the constructed file
       virtual abstract_file* open( stl::string_view path, mode m ) override;
 
+      /// \brief Piggybacks a file with another file
+      ///
+      /// \param back the file to piggyback onto
+      /// \return a pointer to the constructed file
       virtual abstract_file* piggyback( abstract_file* back ) override;
 
       //----------------------------------------------------------------------
@@ -53,8 +57,18 @@ namespace bit {
       //----------------------------------------------------------------------
     public:
 
+      /// \brief Opens an async file at the given \p path with the given
+      ///        mode \p m
+      ///
+      /// \param path the path to the file to open
+      /// \param m the mode of the file
+      /// \return a pointer to the constructed file
       async_file* open_async( stl::string_view path, mode m ) override;
 
+      /// \brief Piggybacks an async file with another file
+      ///
+      /// \param back the file to piggyback onto
+      /// \return a pointer to the constructed file
       async_file* piggyback_async( async_file* back ) override;
 
       //----------------------------------------------------------------------
