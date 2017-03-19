@@ -67,6 +67,7 @@ set(headers
   include/bit/platform/threading/spin_lock.hpp
   include/bit/platform/threading/thread.hpp
   include/bit/platform/threading/unlock_guard.hpp
+  include/bit/platform/filesystem/filesystem.hpp
 )
 
 if( WIN32 )
@@ -81,10 +82,13 @@ elseif( APPLE )
   set(platform_source_files
     src/bit/platform/threading/mac/thread.cpp
   )
+else()
+  message(FATAL_ERROR "unknown or unsupported target platform")
 endif()
 
 set(source_files
   src/bit/platform/threading/spin_lock.cpp
+  src/bit/platform/filesystem/filesystem.cpp
   ${platform_source_files}
 )
 
