@@ -108,11 +108,27 @@ namespace bit {
       ///        filesystem
       void mount( file_device* device );
 
+      /// \brief Mounts multiple devices to this \c filesystem
+      ///
+      /// \param device0 a pointer to the first file_device to mount
+      /// \param device1 a pointer to the second file_device to mount
+      /// \param devices variadic pack of pointers to mount
+      template<typename...Devices, std::enable_if_t<stl::conjunction<std::is_base_of<file_device,Devices>...>::value>* = nullptr>
+      void mount( file_device* device0, file_device* device1, Devices*... devices );
+
       /// \brief Unmounts a \p device to this \c filesystem
       ///
       /// \param device a pointer to the file_device to unmount from this
       ///        filesystem
       void unmount( file_device* device );
+
+      /// \brief Unmounts multiple devices from this \c filesystem
+      ///
+      /// \param device0 a pointer to the first file_device to unmount
+      /// \param device1 a pointer to the second file_device to immount
+      /// \param devices variadic pack of pointers to unmount
+      template<typename...Devices, std::enable_if_t<stl::conjunction<std::is_base_of<file_device,Devices>...>::value>* = nullptr>
+      void unmount( file_device* device0, file_device* device1, Devices*... devices );
 
       /// \brief The current number of installed devices
       ///

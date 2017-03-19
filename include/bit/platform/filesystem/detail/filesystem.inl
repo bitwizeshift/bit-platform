@@ -5,6 +5,30 @@
 // Devices
 //----------------------------------------------------------------------------
 
+template<typename...Devices, std::enable_if_t<bit::stl::conjunction<std::is_base_of<bit::platform::file_device,Devices>...>::value>*>
+inline void bit::platform::filesystem::mount( file_device* device0,
+                                              file_device* device1,
+                                              Devices*... devices )
+{
+  file_device* all_devices[] = { device0, device1, devices... };
+
+  for( auto& device : all_devices ) {
+    mount( device );
+  }
+}
+
+template<typename...Devices, std::enable_if_t<bit::stl::conjunction<std::is_base_of<bit::platform::file_device,Devices>...>::value>*>
+inline void bit::platform::filesystem::unmount( file_device* device0,
+                                                file_device* device1,
+                                                Devices*... devices )
+{
+  file_device* all_devices[] = { device0, device1, devices... };
+
+  for( auto& device : all_devices ) {
+    unmount( device );
+  }
+}
+
 inline bit::platform::filesystem::size_type
   bit::platform::filesystem::devices()
   const noexcept
