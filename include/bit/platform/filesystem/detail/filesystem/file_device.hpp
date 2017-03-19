@@ -28,6 +28,7 @@ namespace bit {
       //----------------------------------------------------------------------
     public:
 
+      /// \brief Virtual destructor
       virtual ~file_device() = 0;
 
       //----------------------------------------------------------------------
@@ -35,13 +36,17 @@ namespace bit {
       //----------------------------------------------------------------------
     public:
 
-      /// \brief
+      /// \brief Opens a file at the given \p path with the given mode \p m
       ///
       /// \param path the path to the file to open
       /// \param m the mode of the file
-      /// \return
+      /// \return a pointer to the constructed file
       virtual abstract_file* open( stl::string_view path, mode m );
 
+      /// \brief Piggybacks a file with another file
+      ///
+      /// \param back the file to piggyback onto
+      /// \return a pointer to the constructed file
       virtual abstract_file* piggyback( abstract_file* back );
 
       //----------------------------------------------------------------------
@@ -49,15 +54,28 @@ namespace bit {
       //----------------------------------------------------------------------
     public:
 
-      virtual async_file open_async( stl::string_view path, mode m );
+      /// \brief Opens an async file at the given \p path with the given
+      ///        mode \p m
+      ///
+      /// \param path the path to the file to open
+      /// \param m the mode of the file
+      /// \return a pointer to the constructed file
+      virtual async_file* open_async( stl::string_view path, mode m );
 
-      virtual async_file piggyback_async( async_file back );
+      /// \brief Piggybacks an async file with another file
+      ///
+      /// \param back the file to piggyback onto
+      /// \return a pointer to the constructed file
+      virtual async_file* piggyback_async( async_file* back );
 
       //----------------------------------------------------------------------
       // Element Access
       //----------------------------------------------------------------------
     public:
 
+      /// \brief Gets the identifier for this file_device
+      ///
+      /// \return the string identifier for the file_device
       virtual stl::string_view identifier() const noexcept = 0;
     };
 

@@ -14,32 +14,32 @@ bit::platform::abstract_file*
   bit::platform::file_device::open( stl::string_view, mode )
 {
   BIT_ASSERT(false, "file_device::open: not implemented for this device");
-  return {};
+  return nullptr;
 }
 
 bit::platform::abstract_file*
   bit::platform::file_device::piggyback( abstract_file* )
 {
   BIT_ASSERT(false, "file_device::piggyback: not implemented for this device");
-  return {};
+  return nullptr;
 }
 
 //----------------------------------------------------------------------------
 // Asynchronous Files
 //----------------------------------------------------------------------------
 
-bit::platform::async_file
+bit::platform::async_file*
   bit::platform::file_device::open_async( stl::string_view, mode )
 {
   BIT_ASSERT(false, "file_device::open_async: not implemented for this device");
-  return {};
+  return nullptr;
 }
 
-bit::platform::async_file
-  bit::platform::file_device::piggyback_async( async_file )
+bit::platform::async_file*
+  bit::platform::file_device::piggyback_async( async_file* )
 {
   BIT_ASSERT(false, "file_device::piggyback_async: not implemented for this device");
-  return {};
+  return nullptr;
 }
 
 //============================================================================
@@ -67,7 +67,7 @@ namespace { // anonymous
     find_device( bit::stl::string_view identifier,
                  bit::stl::span<bit::platform::file_device*> devices )
   {
-    for( auto i=0; i < devices.size(); ++i ){
+    for( auto i=0; i < devices.size(); ++i ) {
       if( devices[i]->identifier() == identifier ) return devices[i];
     }
 
@@ -118,7 +118,7 @@ bit::platform::file
                                    device_list devices,
                                    mode access )
 {
-  BIT_ASSERT( !devices.empty(), "device list cannot be empty" );
+  BIT_ASSERT( !devices.empty(), "filesystem::open: device list cannot be empty" );
 
   auto devs     = stl::span<file_device*>{ m_devices.get(), m_current };
   auto device   = find_device(devices[0], devs);
@@ -141,7 +141,7 @@ bit::platform::async_file
                                    device_list devices,
                                    mode access )
 {
-  BIT_ASSERT( !devices.empty(), "device list cannot be empty" );
+  BIT_ASSERT( !devices.empty(), "filesystem::open: device list cannot be empty" );
 
   auto devs     = stl::span<file_device*>{ m_devices.get(), m_current };
   auto device   = find_device(devices[0], devs);
@@ -152,6 +152,8 @@ bit::platform::async_file
     device   = find_device(devices[i], devs);
     abstract = device->piggyback_async(abstract);
   }
+
+  BIT_ASSERT( false, "filesystem::open: not implemented");
 
   return async_file{};
 //  return file{ abstract, this };
@@ -170,7 +172,7 @@ void bit::platform::filesystem::close( file& f )
 
 void bit::platform::filesystem::close( async_file& f )
 {
-
+  BIT_ASSERT(false, "filesystem::close: not implemented");
 }
 
 //----------------------------------------------------------------------------
@@ -183,5 +185,6 @@ void bit::platform::filesystem::destroy_file( abstract_file* f )
 
   if( next ) destroy_file( next );
 
-  delete f; // TODO: change to allocator
+  // TODO: change to bit::memory allocator
+  delete f;
 }

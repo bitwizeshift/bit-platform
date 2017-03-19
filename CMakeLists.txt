@@ -68,6 +68,7 @@ set(headers
   include/bit/platform/threading/thread.hpp
   include/bit/platform/threading/unlock_guard.hpp
   include/bit/platform/filesystem/filesystem.hpp
+  include/bit/platform/filesystem/null_file_device.hpp
 )
 
 if( WIN32 )
@@ -89,6 +90,8 @@ endif()
 set(source_files
   src/bit/platform/threading/spin_lock.cpp
   src/bit/platform/filesystem/filesystem.cpp
+  src/bit/platform/filesystem/null_file_device.cpp
+  src/bit/platform/filesystem/null_file.cpp
   ${platform_source_files}
 )
 

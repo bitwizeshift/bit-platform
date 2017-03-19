@@ -8,19 +8,20 @@
 #ifndef BIT_PLATFORM_FILESYSTEM_FILESYSTEM_HPP
 #define BIT_PLATFORM_FILESYSTEM_FILESYSTEM_HPP
 
-#include <bit/platform/filesystem/detail/filesystem/abstract_file.hpp>
-#include <bit/platform/filesystem/detail/filesystem/abstract_file.hpp>
+// bit::stl headers
 #include <bit/stl/stddef.hpp>
 #include <bit/stl/span.hpp>
 #include <bit/stl/type_traits.hpp>
 
+// std headers
+#include <memory>
+
+// Implementation types
 #include "detail/filesystem/mode.hpp"
 #include "detail/filesystem/abstract_file.hpp"
 #include "detail/filesystem/file.hpp"
 #include "detail/filesystem/async_file.hpp"
 #include "detail/filesystem/file_device.hpp"
-
-#include <memory>
 
 namespace bit {
   namespace platform {
