@@ -31,14 +31,14 @@ endif()
 git_build_information( PATCH_VARIABLE BIT_PLATFORM_VERSION_PATCH
                        BUILD_VARIABLE BIT_PLATFORM_BUILD_NUMBER
                        BRANCH_VARIABLE BIT_PLATFORM_BRANCH
-                       REF v0.1
+                       REF v0.2
                        PATHSPECS ${CMAKE_CURRENT_LIST_DIR}/include
                                  ${CMAKE_CURRENT_LIST_DIR}/cmake
                                  ${CMAKE_CURRENT_LIST_FILE}
 )
 
 set(BIT_PLATFORM_VERSION_MAJOR 0 CACHE STRING "major version of bit::platform" FORCE)
-set(BIT_PLATFORM_VERSION_MINOR 1 CACHE STRING "minor version of bit::platform" FORCE)
+set(BIT_PLATFORM_VERSION_MINOR 2 CACHE STRING "minor version of bit::platform" FORCE)
 set(BIT_PLATFORM_VERSION_PATCH ${BIT_PLATFORM_VERSION_PATCH} CACHE STRING "patch version of bit::platform" FORCE)
 set(BIT_PLATFORM_VERSION "${BIT_PLATFORM_VERSION_MAJOR}.${BIT_PLATFORM_VERSION_MINOR}.${BIT_PLATFORM_VERSION_PATCH}" CACHE STRING "version of bit::platform" FORCE)
 set(BIT_PLATFORM_BUILD_NUMBER "${BIT_PLATFORM_BUILD_NUMBER}" CACHE STRING "build number of bit::platform" FORCE)
