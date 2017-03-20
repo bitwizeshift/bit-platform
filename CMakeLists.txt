@@ -68,6 +68,7 @@ set(headers
   include/bit/platform/threading/spin_lock.hpp
   include/bit/platform/threading/thread.hpp
   include/bit/platform/threading/unlock_guard.hpp
+  include/bit/platform/threading/semaphore.hpp
 
   # filesystem
   include/bit/platform/filesystem/filesystem.hpp
@@ -80,16 +81,19 @@ set(headers
 if( WIN32 )
   set(platform_source_files
     src/bit/platform/threading/win32/thread.cpp
+    src/bit/platform/threading/win32/semaphore.cpp
     src/bit/platform/filesystem/win32/disk_file_device.cpp
     src/bit/platform/filesystem/win32/disk_file.cpp
   )
 elseif( UNIX )
   set(platform_source_files
     src/bit/platform/threading/posix/thread.cpp
+    src/bit/platform/threading/posix/semaphore.cpp
   )
 elseif( APPLE )
   set(platform_source_files
     src/bit/platform/threading/mac/thread.cpp
+    src/bit/platform/threading/mac/semaphore.cpp
   )
 else()
   message(FATAL_ERROR "unknown or unsupported target platform")
