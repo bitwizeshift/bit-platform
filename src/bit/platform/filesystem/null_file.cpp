@@ -10,15 +10,15 @@ void bit::platform::null_file::close()
 }
 
 bit::platform::null_file::size_type
-  bit::platform::null_file::read( stl::span<stl::byte> buffer )
+  bit::platform::null_file::read( stl::span<stl::byte> )
 {
-  return buffer.size();
+  return 0;
 }
 
 bit::platform::null_file::size_type
-  bit::platform::null_file::write( stl::span<const stl::byte> )
+  bit::platform::null_file::write( stl::span<const stl::byte> buffer )
 {
-  return 0;
+  return buffer.size();
 }
 
 //----------------------------------------------------------------------------

@@ -74,6 +74,7 @@ set(headers
   include/bit/platform/filesystem/null_file_device.hpp
   include/bit/platform/filesystem/disk_file_device.hpp
   include/bit/platform/filesystem/crypto_file_device.hpp
+  include/bit/platform/filesystem/random_file_device.hpp
 )
 
 if( WIN32 )
@@ -101,6 +102,8 @@ set(source_files
   src/bit/platform/filesystem/null_file_device.cpp
   src/bit/platform/filesystem/crypto_file.cpp
   src/bit/platform/filesystem/crypto_file_device.cpp
+  src/bit/platform/filesystem/random_file.cpp
+  src/bit/platform/filesystem/random_file_device.cpp
   ${platform_source_files}
 )
 
