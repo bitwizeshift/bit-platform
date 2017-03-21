@@ -17,7 +17,8 @@ option(BIT_PLATFORM_COMPILE_UNIT_TESTS "Compile and run the unit tests for this 
 
 project("BitPlatform")
 
-find_package(Bit REQUIRED COMPONENTS Stl)
+find_package(Bit REQUIRED COMPONENTS Stl Math)
+find_package(OpenAL REQUIRED)
 
 if( CMAKE_BUILD_TYPE STREQUAL "" )
   message(STATUS "CMAKE_BUILD_TYPE not set; defaulting to 'Debug'")
@@ -76,6 +77,9 @@ set(headers
   include/bit/platform/filesystem/disk_file_device.hpp
   include/bit/platform/filesystem/crypto_file_device.hpp
   include/bit/platform/filesystem/random_file_device.hpp
+
+  # timing
+  include/bit/platform/timing/clock.hpp
 )
 
 if( WIN32 )
@@ -100,7 +104,10 @@ else()
 endif()
 
 set(source_files
+  # threading
   src/bit/platform/threading/spin_lock.cpp
+
+  # filesystem
   src/bit/platform/filesystem/filesystem.cpp
   src/bit/platform/filesystem/null_file.cpp
   src/bit/platform/filesystem/null_file_device.cpp
@@ -108,14 +115,18 @@ set(source_files
   src/bit/platform/filesystem/crypto_file_device.cpp
   src/bit/platform/filesystem/random_file.cpp
   src/bit/platform/filesystem/random_file_device.cpp
+
+  # timing
+  src/bit/platform/timing/clock.cpp
+
+  # platform-specific
   ${platform_source_files}
 )
-
 
 add_library(platform ${source_files})
 add_library(bit::platform ALIAS platform)
 
-target_link_libraries(platform PUBLIC bit::stl)
+target_link_libraries(platform PUBLIC bit::stl bit::math)
 
 set_target_properties(platform PROPERTIES
   CXX_STANDARD 14
