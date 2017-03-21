@@ -80,6 +80,7 @@ set(headers
 
   # timing
   include/bit/platform/timing/clock.hpp
+  include/bit/platform/timing/scope_clock.hpp
 )
 
 if( WIN32 )
