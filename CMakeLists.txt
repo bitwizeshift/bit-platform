@@ -81,14 +81,23 @@ set(headers
   # timing
   include/bit/platform/timing/clock.hpp
   include/bit/platform/timing/scope_clock.hpp
+
+  # input
+  include/bit/platform/input/keyboard.hpp
 )
 
 if( WIN32 )
   set(platform_source_files
+    # threading
     src/bit/platform/threading/win32/thread.cpp
     src/bit/platform/threading/win32/semaphore.cpp
+
+    # fiesystem
     src/bit/platform/filesystem/win32/disk_file_device.cpp
     src/bit/platform/filesystem/win32/disk_file.cpp
+
+    # input
+    src/bit/platform/input/win32/keyboard.cpp
   )
 elseif( UNIX )
   set(platform_source_files
@@ -119,6 +128,9 @@ set(source_files
 
   # timing
   src/bit/platform/timing/clock.cpp
+
+  # input
+  src/bit/platform/input/keyboard.cpp
 
   # platform-specific
   ${platform_source_files}
