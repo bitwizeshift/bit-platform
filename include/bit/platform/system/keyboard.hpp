@@ -1,7 +1,8 @@
 /**
  * \file keyboard.hpp
  *
- * \brief todo: fill in documentation
+ * \brief This header contains a collection of keyboard scan-codes, along with
+ *        a simple query API for determining if a key is pressed
  *
  * \author Matthew Rodusek (matthew.rodusek@gmail.com)
  */
@@ -13,6 +14,10 @@
 namespace bit {
   namespace platform {
 
+    //////////////////////////////////////////////////////////////////////////
+    /// \brief This enum holds all possible keyboard scancodes that can be
+    ///        queried by the keyboard scanner
+    //////////////////////////////////////////////////////////////////////////
     enum class key
     {
       // Function Keys

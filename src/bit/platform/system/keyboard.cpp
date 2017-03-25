@@ -1,4 +1,4 @@
-#include <bit/platform/input/keyboard.hpp>
+#include <bit/platform/system/keyboard.hpp>
 
 namespace {
   bit::platform::key g_keys[] = {

@@ -1,10 +1,16 @@
-#include <bit/platform/input/keyboard.hpp>
+#include <bit/platform/system/keyboard.hpp>
 
 #ifdef _WIN32_WINDOWS
-    #undef _WIN32_WINDOWS
+# undef _WIN32_WINDOWS
 #endif
 #ifdef _WIN32_WINNT
-    #undef _WIN32_WINNT
+# undef _WIN32_WINNT
+#endif
+#ifndef NOMINMAX
+# define NOMINMAX 1
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+# define WIN32_LEAN_AND_MEAN 1
 #endif
 #define _WIN32_WINDOWS 0x0501
 #define _WIN32_WINNT   0x0501
@@ -13,7 +19,7 @@
 bool bit::platform::keyboard::is_key_pressed( key k )
   noexcept
 {
-  auto vkey = int();
+  int vkey;
 
   switch(k)
   {
@@ -88,7 +94,7 @@ bool bit::platform::keyboard::is_key_pressed( key k )
   case key::up:    vkey = VK_UP; break;
   case key::down:  vkey = VK_DOWN; break;
 
-  default: return false;
+  default: vkey = 0;
   }
 
   return (::GetAsyncKeyState(vkey) & 0x8000) != 0;
