@@ -192,7 +192,7 @@ void bit::platform::concurrent_queue<T,Lock,Allocator>
 {
   std::lock(m_lock,other.m_lock);
   std::lock_guard<lock_type> lock1(m_lock, std::adopt_lock);
-  std::lock_guard<lock_type> lock2(m_lock, std::adopt_lock);
+  std::lock_guard<lock_type> lock2(other.m_lock, std::adopt_lock);
 
   m_queue.swap(other.m_queue);
 }
