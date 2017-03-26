@@ -8,6 +8,16 @@
 #ifndef BIT_PLATFORM_SYSTEM_WINDOW_HPP
 #define BIT_PLATFORM_SYSTEM_WINDOW_HPP
 
+// bit::platform
+#include "../threading/concurrent_queue.hpp"
+#include "event.hpp"
+
+// bit::stl
+#include <bit/stl/string_view.hpp>
+
+// TODO: Generate a header that contains the native handle type through the
+//       build system
+
 #ifdef _WIN32
 struct HWND__;
 #endif
@@ -60,24 +70,36 @@ namespace bit {
 
       void set_style( window_style style );
 
-      void set_();
+      void set_position( std::ptrdiff_t x, std::ptrdiff_t y );
+
+      void set_size( std::size_t width, std::size_t height );
 
       //----------------------------------------------------------------------
       // Events
       //----------------------------------------------------------------------
     public:
 
-      /// \brief
+      /// \brief Pushes an \p event into the event queue
       ///
-      /// \param event
-      /// \return
+      /// \param event the event to insert
+      void push_event( const event& event );
+
+      /// \brief Emplaces an \p event into the event queue
+      ///
+      /// \param args the arguments to use to construct the event
+      template<typename...Args, std::enable_if<std::is_constructible<event,Args...>::value>* = nullptr>
+      void emplace_event( Args&&...args );
+
+      /// \brief Polls for an event, returning whether one was received
+      ///
+      /// \param event the event to assign
+      /// \return \c true if an event was received
       bool poll_event( event* event );
 
-      /// \brief
+      /// \brief Waits for a new event
       ///
-      /// \param event
-      /// \return
-      bool wait_event( event* event );
+      /// \return the event
+      event wait_event();
 
       //----------------------------------------------------------------------
       // Native Handle
@@ -88,6 +110,21 @@ namespace bit {
       ///
       /// \return an instance of the native handle
       native_handle_type native_handle() noexcept;
+
+      //----------------------------------------------------------------------
+      // Private Member Types
+      //----------------------------------------------------------------------
+    private:
+
+      class Impl;
+
+      //----------------------------------------------------------------------
+      // Private Members
+      //----------------------------------------------------------------------
+    private:
+
+//      std::unique_ptr<Impl> m_impl;
+      native_handle_type    m_handle;
 
     };
 

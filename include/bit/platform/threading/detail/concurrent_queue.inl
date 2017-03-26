@@ -1,7 +1,6 @@
 #ifndef BIT_PLATFORM_THREADING_DETAIL_CONCURRENT_QUEUE_INL
 #define BIT_PLATFORM_THREADING_DETAIL_CONCURRENT_QUEUE_INL
 
-
 //----------------------------------------------------------------------------
 // Constructors / Assignment
 //----------------------------------------------------------------------------

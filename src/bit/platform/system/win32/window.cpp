@@ -1,3 +1,5 @@
+#include <bit/platform/system/window.hpp>
+
 #ifdef _WIN32_WINDOWS
 # undef _WIN32_WINDOWS
 #endif
@@ -14,7 +16,77 @@ namespace {
   /// \brief Sets process DPI awareness in Windows
   void set_process_dpi_aware() noexcept;
 
+//  ::LRESULT CALLBACK event_handler( ::HWND handle, ::UINT message,
+//                                    ::WPARAM wparam, ::LPARAM lparam )
+//  {
+//    // Associate handle and Window instance when the creation message is received
+//    if (message == WM_CREATE)
+//    {
+//        // Get WindowImplWin32 instance (it was passed as the last argument of CreateWindow)
+//        ::LONG_PTR window = (::LONG_PTR)reinterpret_cast<::CREATESTRUCT*>(lparam)->lpCreateParams;
+//
+//        // Set as the "user data" parameter of the window
+//        ::SetWindowLongPtrW(handle, GWLP_USERDATA, window);
+//    }
+//
+//    // Get the WindowImpl instance corresponding to the window handle
+//    WindowImplWin32* window = handle ? reinterpret_cast<WindowImplWin32*>(GetWindowLongPtr(handle, GWLP_USERDATA)) : NULL;
+//
+//    // Forward the event to the appropriate function
+//    if (window)
+//    {
+//        window->processEvent(message, wParam, lParam);
+//
+//        if (window->m_callback)
+//            return CallWindowProcW(reinterpret_cast<WNDPROC>(window->m_callback), handle, message, wParam, lParam);
+//    }
+//
+//    // We don't forward the WM_CLOSE message to prevent the OS from automatically destroying the window
+//    if (message == WM_CLOSE)
+//        return 0;
+//
+//    // Don't forward the menu system command, so that pressing ALT or F10 doesn't steal the focus
+//    if ((message == WM_SYSCOMMAND) && (wparam == SC_KEYMENU))
+//        return 0;
+//
+//    return ::DefWindowProcW(handle, message, wparam, lparam);
+//  }
+
 } // namespace
+
+bit::platform::window::window( stl::string_view title )
+{
+
+}
+
+bit::platform::window::~window() = default;
+
+void bit::platform::window::set_title( stl::string_view title )
+{
+  ::SetWindowTextA(m_handle, title.data());
+}
+
+void bit::platform::window::set_style( style style )
+{
+
+}
+
+void bit::platform::window::set_position( std::ptrdiff_t x, std::ptrdiff_t y )
+{
+  ::SetWindowPos(m_handle, nullptr, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+}
+
+void bit::platform::window::set_size( std::size_t width, std::size_t height )
+{
+  auto rectangle = ::RECT{0, 0, static_cast<long>(width), static_cast<long>(height)};
+
+  ::AdjustWindowRect(&rectangle, ::GetWindowLong(m_handle, GWL_STYLE), false);
+  auto w  = rectangle.right - rectangle.left;
+  auto h = rectangle.bottom - rectangle.top;
+
+  ::SetWindowPos(m_handle, nullptr, 0, 0, w, h, SWP_NOMOVE | SWP_NOZORDER);
+}
+
 
 namespace { // anonymous
 
