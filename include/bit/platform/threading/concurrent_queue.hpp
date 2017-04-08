@@ -197,7 +197,9 @@ namespace bit {
       //----------------------------------------------------------------------
     private:
 
-      std::queue<T,Allocator> m_queue; ///<
+      using container = std::deque<T,Allocator>;
+
+      std::queue<T,container> m_queue; ///< The underlying queue
       lock_type               m_lock;  ///< The type of lock to wait on
       std::condition_variable m_cv;    ///< A condition to wait on
     };

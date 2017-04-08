@@ -70,6 +70,7 @@ set(headers
   include/bit/platform/threading/thread.hpp
   include/bit/platform/threading/unlock_guard.hpp
   include/bit/platform/threading/semaphore.hpp
+  include/bit/platform/threading/concurrent_queue.hpp
 
   # filesystem
   include/bit/platform/filesystem/filesystem.hpp
@@ -85,6 +86,7 @@ set(headers
   # input
   include/bit/platform/system/keyboard.hpp
   include/bit/platform/system/event.hpp
+  include/bit/platform/system/processor.hpp
 )
 
 if( WIN32 )
@@ -133,6 +135,8 @@ set(source_files
   # system
   src/bit/platform/system/keyboard.cpp
   src/bit/platform/system/event.cpp
+  src/bit/platform/system/processor.cpp
+  src/bit/platform/system/cpuid.cpp
 
   # platform-specific
   ${platform_source_files}
