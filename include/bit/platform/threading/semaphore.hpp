@@ -48,6 +48,10 @@
 namespace bit {
   namespace platform {
 
+    //////////////////////////////////////////////////////////////////////////
+    /// \brief Implementation of a lightweight semaphore
+    ///
+    //////////////////////////////////////////////////////////////////////////
     class semaphore
     {
       template<typename Rep, typename Period>
@@ -84,6 +88,9 @@ namespace bit {
 
       // deleted copy constructor
       semaphore( const semaphore& ) = delete;
+
+      // deleted move constructor
+      semaphore( semaphore&& ) = delete;
 
       /// \brief Destroys this semaphore
       ~semaphore();
@@ -151,7 +158,7 @@ inline bool
 {
   using usec_type = std::chrono::duration<std::uint64_t,std::micro>;
 
-  auto usecs = usec_type(duration);
+  auto usecs = std::chrono::duration_cast<usec_type>(duration);
 
   return try_wait( usecs.count() );
 }
@@ -164,7 +171,7 @@ inline bool
   using usec_type = std::chrono::duration<std::uint64_t,std::micro>;
 
   auto diff = (time - std::chrono::high_resolution_clock::now());
-  auto usecs = usec_type(diff);
+  auto usecs = std::chrono::duration_cast<usec_type>(diff);
 
   auto count = usecs.count();
 

@@ -22,7 +22,7 @@ bit::platform::semaphore::semaphore()
 bit::platform::semaphore::semaphore( int initial_count )
 {
   assert( initial_count >= 0 );
-  constexpr auto max_long = 0x7fffffffu;
+  static constexpr auto max_long = 0x7fffffffu;
 
   m_semaphore = ::CreateSemaphoreW(nullptr, initial_count, max_long, nullptr);
 }
@@ -40,7 +40,7 @@ bit::platform::semaphore::~semaphore()
 
 void bit::platform::semaphore::wait()
 {
-  constexpr auto infinite = 0xffffffffu;
+  static constexpr auto infinite = 0xffffffffu;
 
   ::WaitForSingleObject( m_semaphore, infinite);
 }
