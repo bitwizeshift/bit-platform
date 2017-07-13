@@ -67,6 +67,17 @@ typename bit::platform::concurrent_queue<T,Lock,Allocator>::size_type
 }
 
 //----------------------------------------------------------------------------
+// Size
+//----------------------------------------------------------------------------
+
+template<typename T, typename Lock, typename Allocator>
+Allocator bit::platform::concurrent_queue<T,Lock,Allocator>::get_allocator()
+  const
+{
+  return m_queue.get_allocator();
+}
+
+//----------------------------------------------------------------------------
 // Modifiers
 //----------------------------------------------------------------------------
 
@@ -75,7 +86,7 @@ void bit::platform::concurrent_queue<T,Lock,Allocator>::pop( T* value )
 {
   BIT_ASSERT( value, "concurrent_queue::pop: value cannot be null");
 
-  std::unique_lock<std::mutex> lock(m_lock);
+  std::unique_lock<lock_type> lock(m_lock);
   m_cv.wait(lock, [&]{ return !m_queue.empty(); });
   (*value) = std::move(m_queue.front());
   m_queue.pop();

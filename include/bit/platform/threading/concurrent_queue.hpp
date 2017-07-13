@@ -116,6 +116,16 @@ namespace bit {
       size_type size() const noexcept;
 
       //----------------------------------------------------------------------
+      // Observers
+      //----------------------------------------------------------------------
+    public:
+
+      /// \brief Gets the underlying allocator from this concurrent queue
+      ///
+      /// \return the allocator
+      Allocator get_allocator() const;
+
+      //----------------------------------------------------------------------
       // Element Access
       //----------------------------------------------------------------------
     public:
@@ -197,9 +207,24 @@ namespace bit {
       //----------------------------------------------------------------------
     private:
 
-      using container = std::deque<T,Allocator>;
+      using base_type = std::queue<T,std::deque<T,Allocator>>;
 
-      std::queue<T,container> m_queue; ///< The underlying queue
+      class container : public base_type
+      {
+        using base_type::base_type;
+
+        container( const container& other ) = default;
+        container( container&& other ) = default;
+        container& operator=( const container& other ) = default;
+        container& operator=( container&& other ) = default;
+
+        Allocator get_allocator() const
+        {
+          return base_type::c.get_allocator();
+        }
+      };
+
+      container               m_queue; ///< The underlying queue
       lock_type               m_lock;  ///< The type of lock to wait on
       std::condition_variable m_cv;    ///< A condition to wait on
     };
