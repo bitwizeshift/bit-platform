@@ -9,21 +9,17 @@
 #ifndef BIT_PLATFORM_THREADING_JOB_DISPATCHER_HPP
 #define BIT_PLATFORM_THREADING_JOB_DISPATCHER_HPP
 
-// TODO:
-// - Make main queue enqueue into its own queue
-
 #include <bit/stl/stddef.hpp>
 #include <bit/stl/utility.hpp>
-#include <bit/stl/memory.hpp>
+#include <bit/stl/memory.hpp>     // bit::stl::destroy_at
 #include <bit/stl/functional.hpp> // bit::stl::invoke
-#include <bit/stl/assert.hpp>
+#include <bit/stl/assert.hpp>     // BIT_ASSERT
 
 #include <cstdlib> // std::size_t
 #include <atomic>  // std::atomic
 #include <thread>  // std::thread
 #include <mutex>   // std::mutex
 #include <condition_variable> // std::condition_variable
-#include <array>   // std::array
 #include <vector>  // std::vector
 #include <tuple>   // std::tuple
 
@@ -32,13 +28,14 @@ namespace bit {
     namespace detail {
       void* allocate_job();
 
+      template<typename T>
+      std::decay_t<T> decay_copy( T&& v ) { return std::forward<T>(v); }
+
       class job_queue;
-    }
 
-    template<typename T>
-    std::decay_t<T> decay_copy( T&& v ) { return std::forward<T>(v); }
-
-    class job_dispatcher;
+      template<typename T>
+      struct post_job_and_wait_impl;
+    } // namespace detail
 
     //////////////////////////////////////////////////////////////////////////
     /// \brief A job is the unit of dispatch used in the job_system
@@ -128,6 +125,9 @@ namespace bit {
       /// \brief Finalizes this job
       void finalize();
 
+      /// \brief Stores arguments for the function to use
+      ///
+      /// \param args the arguments
       template<typename...Args>
       void store_arguments( Args&&...args );
 
@@ -136,6 +136,10 @@ namespace bit {
       //----------------------------------------------------------------------
     private:
 
+      ////////////////////////////////////////////////////////////////////////
+      /// \brief An underlying storage type that converts the unused padding
+      ///        of this job into a tuple of arguments
+      ////////////////////////////////////////////////////////////////////////
       class storage_type
       {
         //--------------------------------------------------------------------
@@ -143,6 +147,10 @@ namespace bit {
         //--------------------------------------------------------------------
       public:
 
+        /// \brief Constructs the storage type from the specified memory
+        ///        address
+        ///
+        /// \param ptr the memory address for the storage
         storage_type( void* ptr );
 
         //--------------------------------------------------------------------
@@ -150,6 +158,9 @@ namespace bit {
         //--------------------------------------------------------------------
       public:
 
+        /// \brief Sets the values of the storage type, forwarding the args
+        ///
+        /// \param args the arguments to store
         template<typename...Ts, typename...Args>
         void set( Args&&...args );
 
@@ -158,6 +169,9 @@ namespace bit {
         //--------------------------------------------------------------------
       public:
 
+        /// \brief Gets the values of the storage type as a tuple
+        ///
+        /// \return the storage values as a tuple
         template<typename...Ts>
         std::tuple<Ts...>& get() const;
 
@@ -202,19 +216,32 @@ namespace bit {
       //----------------------------------------------------------------------
     private:
 
+      /// \brief The function being wrapped in the job object
+      ///
+      /// \param padding pointer to the padding to convert to arguments
       template<typename...Types>
       static void function( void* padding );
 
+      /// \brief The implementation of the above function that forwards all
+      ///        stored arguments to the underlying function type
+      ///
+      /// \param tuple the tuple of arguments
       template<typename Tuple, std::size_t...Idxs>
       static void function_inner( Tuple&& tuple, std::index_sequence<Idxs...> );
 
       //----------------------------------------------------------------------
 
+      /// \{
+      /// \brief Destructs the underlying arguments stored in the padding
+      ///
+      /// If the type is trivially destructible, this is a no-op
+      ///
+      /// \param storage the underlying storage to destruct
       template<typename...Types>
       static void destruct_args( storage_type& storage, std::true_type );
-
       template<typename...Types>
       static void destruct_args( storage_type& storage, std::false_type );
+      /// \}
 
       //----------------------------------------------------------------------
       // Friends
@@ -236,13 +263,17 @@ namespace bit {
     /// \return the active job, or nullptr
     job* this_job();
 
+    /// \brief Tag used for assigning affinity to threads in the
+    ///        job_dispatcher
     struct assign_affinity_t{};
 
+    /// \brief Constant used for tag dispatching assigning affinity
     constexpr assign_affinity_t assign_affinity = {};
 
     //////////////////////////////////////////////////////////////////////////
-    /// \brief
+    /// \brief A dispatcher for managing the job-system.
     ///
+    /// This uses a work-stealing queue system for stored jobs.
     ///
     /// \note Only the thread that creates and runs this queue (typically
     ///       from the main message pump) is allowed to stop or destroy this
@@ -255,6 +286,7 @@ namespace bit {
       //----------------------------------------------------------------------
     public:
 
+      ///The number of max jobs in this dispatcher
       static constexpr std::size_t max_jobs = 4096;
 
       //----------------------------------------------------------------------
@@ -262,12 +294,25 @@ namespace bit {
       //----------------------------------------------------------------------
     public:
 
+      /// \brief Default-constructs this job_dispatcher with threads equal
+      ///        to the number of logical cores on the system - 1
       job_dispatcher();
 
+      /// \brief Constructs the job_dispatcher to use \p threads worker
+      ///        threads
+      ///
+      /// \param threads the number of worker threads
       explicit job_dispatcher( std::size_t threads );
 
+      /// \brief Constructs this job_dispatcher with threads equal
+      ///        to the number of logical cores on the system - 1, and
+      ///        assigns affinity to each core
       explicit job_dispatcher( assign_affinity_t );
 
+      /// \brief Constructs \p threads worker threads, each assigned
+      ///        affinity to new cores
+      ///
+      /// \param threads the number of worker threads
       explicit job_dispatcher( assign_affinity_t, std::size_t threads );
 
       // Deleted move constructor
@@ -278,6 +323,7 @@ namespace bit {
 
       //----------------------------------------------------------------------
 
+      /// \brief Destructs and stops the dispatcher from running
       ~job_dispatcher();
 
       //----------------------------------------------------------------------
@@ -361,20 +407,44 @@ namespace bit {
       //----------------------------------------------------------------------
     private:
 
-      /// \brief Starts
+      /// \brief Starts this job_dispatcher for the first time
       void start();
 
+      /// \brief Makes a worker thread with the specified thread \p index
+      ///
+      /// \return the worker thread
       std::thread make_worker_thread( std::ptrdiff_t index );
 
+      /// \brief Gets a job either through the current thread's queue, or
+      ///        from stealing from another active thread
+      ///
+      /// \return the job
       job* get_job();
 
+      /// \brief Pushes a new job onto the queue at the specified \p index
+      ///
+      /// \param index the index of the queue to push
+      /// \param j the job to push
       void push_job( std::ptrdiff_t index, job* j );
 
+      /// \brief Helps in processing jobs while a condition is met
+      ///
+      /// \param condition the condition to check for
       template<typename Condition>
       void help_while( Condition&& condition );
 
+      /// \brief Helps in processing jobs while the specified job \p j is
+      ///        unavailable for processing
+      ///
+      /// \note This function exists to break infinite template recursion
+      ///       caused by calling help_while with a lambda from inside of
+      ///       help_while. Each lambda produces a new, unique type causing
+      ///       unlimited recursion otherwise.
+      ///
+      /// \param j the job to check for availability
       void help_while_unavailable( const job* j );
 
+      /// \brief Performs the basic work cycle
       void do_work();
 
       //----------------------------------------------------------------------
@@ -408,6 +478,8 @@ namespace bit {
     template<typename Fn, typename...Args>
     const job* make_job( std::nullptr_t, Fn&&, Args&&... ) = delete;
 
+    //------------------------------------------------------------------------
+
     /// \brief Posts a new job for execution to \p dispatcher
     ///
     /// \param dispatcher the dispatcher to post the job to
@@ -418,6 +490,7 @@ namespace bit {
     /// \{
     /// \brief Creates and posts a job to the specified \p dispatcher
     ///
+    /// \param dispatcher the dispatcher to post the job to
     /// \param parent the parent job
     /// \param fn the function to invoke
     /// \param args the arguments to forward to \p fn
@@ -432,12 +505,42 @@ namespace bit {
                          std::nullptr_t, Fn&&, Args&&... ) = delete;
     /// \}
 
+    //------------------------------------------------------------------------
+
+    /// \{
+    /// \brief Creates, posts, and waits for the completion of a specified
+    ///        job.
+    ///
+    /// This makes the result appear synchronous, despite the fact that it
+    /// may be invoked on a different thread.
+    ///
+    /// \param dispatcher the dispatcher to post the job to
+    /// \param parent the parent job
+    /// \param fn the function to invoke
+    /// \param args the arguments to forward to \p fn
+    /// \return the result of the invocation
+    template<typename Fn, typename...Args>
+    stl::invoke_result_t<Fn,Args...>
+      post_job_and_wait( job_dispatcher& dispatcher, Fn&& fn, Args&&...args );
+    template<typename Fn, typename...Args>
+    stl::invoke_result_t<Fn,Args...>
+      post_job_and_wait( job_dispatcher& dispatcher,
+                         const job* parent, Fn&& fn, Args&&...args );
+    template<typename Fn, typename...Args>
+    stl::invoke_result_t<Fn,Args...>
+      post_job_and_wait( job_dispatcher&,
+                         std::nullptr_t, Fn&&, Args&&... ) = delete;
+    /// \}
+
+    //------------------------------------------------------------------------
+
     /// \brief Waits for the job \p job to finish executing, while servicing
     ///        available jobs from \p dispatcher
     ///
     /// \param dispatcher the dispatcher to service jobs from
     /// \param job the job to wait for
     void wait( job_dispatcher& dispatcher, const job* job );
+    void wait( job_dispatcher&, std::nullptr_t ) = delete;
 
   } // namespace platform
 } // namespace bit

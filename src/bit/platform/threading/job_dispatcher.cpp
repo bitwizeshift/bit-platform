@@ -5,6 +5,7 @@
 #include <random> // std::random_device, sdt::uniform_distribution, etc
 #include <memory> // std::unique_ptr
 #include <vector> // std::vector
+#include <array>  // std::array
 
 //============================================================================
 // Anonymous Namespaces

@@ -92,7 +92,7 @@ void bit::platform::job::store_arguments( Args&&...args )
 
     BIT_ASSERT(p,"Padding buffer must be suitable for std::unique_ptr");
 
-    new (p) type( std::make_unique<tuple_type>( decay_copy(std::forward<Args>(args))... ) );
+    new (p) type( std::make_unique<tuple_type>( detail::decay_copy(std::forward<Args>(args))... ) );
   }
 }
 
@@ -168,7 +168,7 @@ inline bit::platform::job::storage_type::storage_type( void* ptr )
 template<typename...Ts, typename...Args>
 inline void bit::platform::job::storage_type::set( Args&&...args )
 {
-  new (m_ptr) std::tuple<Ts...>( decay_copy(std::forward<Args>(args))... );
+  new (m_ptr) std::tuple<Ts...>( detail::decay_copy(std::forward<Args>(args))... );
 }
 
 //----------------------------------------------------------------------------
@@ -237,6 +237,7 @@ inline const bit::platform::job*
   return job;
 }
 
+//----------------------------------------------------------------------------
 
 template<typename Fn, typename...Args>
 inline const bit::platform::job*
@@ -254,6 +255,130 @@ inline const bit::platform::job*
 {
   auto job = make_job( parent, std::forward<Fn>(fn), std::forward<Args>(args)... );
   return post_job( dispatcher, job );
+}
+
+//============================================================================
+// detail::post_job_and_wait_impl
+//============================================================================
+
+template<typename T>
+struct bit::platform::detail::post_job_and_wait_impl
+{
+  template<typename Fn, typename...Args>
+  static T invoke( job_dispatcher& dispatcher, Fn&& fn, Args&&...args )
+  {
+    using storage_type = std::aligned_storage_t<sizeof(T),alignof(T)>;
+    auto storage = storage_type{};
+
+    auto* job = post_job( dispatcher, [&]()
+    {
+      new (&storage) T( std::forward<Fn>(fn)( std::forward<Args>(args)... ) );
+    });
+    wait( dispatcher, job );
+
+    return std::move( *reinterpret_cast<T*>(&storage) );
+  }
+
+  template<typename Fn, typename...Args>
+  static T invoke( job_dispatcher& dispatcher,
+                   const job* parent, Fn&& fn, Args&&...args )
+  {
+    using storage_type = std::aligned_storage_t<sizeof(T),alignof(T)>;
+    auto storage = storage_type{};
+
+    auto job = post_job( dispatcher, parent, [&]()
+    {
+      new (&storage) T( std::forward<Fn>(fn)( std::forward<Args>(args)... ) );
+    });
+    wait( dispatcher, job );
+
+    return std::move( *static_cast<T*>(&storage) );
+  }
+};
+
+//----------------------------------------------------------------------------
+
+template<typename T>
+struct bit::platform::detail::post_job_and_wait_impl<T&>
+{
+  template<typename Fn, typename...Args>
+  static T& invoke( job_dispatcher& dispatcher, Fn&& fn, Args&&...args )
+  {
+    T* ptr;
+
+    auto* job = post_job( dispatcher, [&]()
+    {
+      ptr = &std::forward<Fn>(fn)( std::forward<Args>(args)... );
+    });
+    wait( dispatcher, job );
+
+    return *ptr;
+  }
+
+  template<typename Fn, typename...Args>
+  static T& invoke( job_dispatcher& dispatcher,
+                    const job* parent, Fn&& fn, Args&&...args )
+  {
+    T* ptr;
+
+    auto job = post_job( dispatcher, parent, [&]()
+    {
+      ptr = &std::forward<Fn>(fn)( std::forward<Args>(args)... );
+    });
+    wait( dispatcher, job );
+
+    return *ptr;
+  }
+};
+
+//----------------------------------------------------------------------------
+
+template<>
+struct bit::platform::detail::post_job_and_wait_impl<void>
+{
+  template<typename Fn, typename...Args>
+  static void invoke( job_dispatcher& dispatcher, Fn&& fn, Args&&...args )
+  {
+    auto* job = post_job( dispatcher, [&]()
+    {
+      std::forward<Fn>(fn)( std::forward<Args>(args)... );
+    });
+    wait( dispatcher, job );
+  }
+
+  template<typename Fn, typename...Args>
+  static void invoke( job_dispatcher& dispatcher,
+                      const job* parent, Fn&& fn, Args&&...args )
+  {
+    auto* job = post_job( dispatcher, parent, [&]()
+    {
+      std::forward<Fn>(fn)( std::forward<Args>(args)... );
+    });
+    wait( dispatcher, job );
+  }
+};
+
+//----------------------------------------------------------------------------
+
+template<typename Fn, typename...Args>
+bit::stl::invoke_result_t<Fn,Args...>
+  bit::platform::post_job_and_wait( job_dispatcher& dispatcher, Fn&& fn, Args&&...args )
+{
+  using result_type = stl::invoke_result_t<Fn,Args...>;
+
+  return detail::post_job_and_wait_impl<result_type>
+    ::invoke( dispatcher, std::forward<Fn>(fn), std::forward<Args>(args)... );
+}
+
+template<typename Fn, typename...Args>
+bit::stl::invoke_result_t<Fn,Args...>
+  bit::platform::post_job_and_wait( job_dispatcher& dispatcher,
+                                    const job* parent, Fn&& fn, Args&&...args )
+{
+  using result_type = stl::invoke_result_t<Fn,Args...>;
+
+  return detail::post_job_and_wait_impl<result_type>
+    ::invoke( dispatcher, parent, std::forward<Fn>(fn), std::forward<Args>(args)... );
 }
 
 #endif /* BIT_PLATFORM_THREADING_DETAIL_JOB_DISPATCHER_INL */
