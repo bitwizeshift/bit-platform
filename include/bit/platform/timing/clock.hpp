@@ -97,8 +97,8 @@ namespace bit {
       //----------------------------------------------------------------------
     private:
 
-      double    m_scale;      ///< Scale the time moves at
-      bool      m_is_running; ///< Is the clock running?
+      double     m_scale;      ///< Scale the time moves at
+      bool       m_is_running; ///< Is the clock running?
       time_point m_start;      ///< The start timer (epoch) to calculate elapsed times
       time_point m_split;      ///< The split timer for frequent resets
     };
