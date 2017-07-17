@@ -101,6 +101,14 @@ namespace bit {
       window_event( const window_event& other ) noexcept;
 
       //----------------------------------------------------------------------
+
+      /// \brief Copy-assigns a window_event
+      ///
+      /// \param other the other event to copy
+      /// \return reference to \c (*this)
+      window_event& operator=( const window_event& other ) noexcept;
+
+      //----------------------------------------------------------------------
       // Element Access
       //----------------------------------------------------------------------
     public:
@@ -212,6 +220,14 @@ namespace bit {
       ///
       /// \param other the other event to copy
       keyboard_event( const keyboard_event& other ) noexcept;
+
+      //----------------------------------------------------------------------
+
+      /// \brief Copy-assigns a keyboard_event
+      ///
+      /// \param other the other event to copy
+      /// \return reference to \c (*this)
+      keyboard_event& operator=( const keyboard_event& other ) noexcept;
 
       //----------------------------------------------------------------------
       // Observers
@@ -355,6 +371,14 @@ namespace bit {
       controller_event( const controller_event& other ) noexcept;
 
       //----------------------------------------------------------------------
+
+      /// \brief Copy-assigns a controller_event
+      ///
+      /// \param other the other event to copy
+      /// \return reference to \c (*this)
+      controller_event& operator=( const controller_event& other ) noexcept;
+
+      //----------------------------------------------------------------------
       // Observers
       //----------------------------------------------------------------------
     public:
@@ -437,12 +461,17 @@ namespace bit {
         window,     ///< category for window events
         keyboard,   ///< category for keyboard events
         controller, ///< category for controller events
+        quit,       ///< category for quit event
+        none,       ///< category for no events
       };
 
       //----------------------------------------------------------------------
       // Constructors
       //----------------------------------------------------------------------
     public:
+
+      /// \brief Construct a null event
+      event() noexcept;
 
       /// \brief Constructs this event out of a controller event
       ///
@@ -463,6 +492,14 @@ namespace bit {
       ///
       /// \param other the other event to copy
       event( const event& other ) noexcept;
+
+      //----------------------------------------------------------------------
+
+      /// \brief Copy-assigns an event
+      ///
+      /// \param other the other event to copy assign
+      /// \return reference to \c (*this)
+      event& operator=( const event& other ) noexcept;
 
       //----------------------------------------------------------------------
       // Element Access
@@ -500,8 +537,13 @@ namespace bit {
       //----------------------------------------------------------------------
     private:
 
+      static_assert( std::is_trivially_destructible<controller_event>::value, "" );
+      static_assert( std::is_trivially_destructible<keyboard_event>::value, "" );
+      static_assert( std::is_trivially_destructible<window_event>::value, "" );
+
       struct empty{};
 
+      /// \brief The storage type for this event
       union storage_type
       {
         empty            empty;
