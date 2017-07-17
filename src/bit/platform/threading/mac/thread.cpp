@@ -31,3 +31,10 @@ std::size_t bit::platform::affinity( std::thread& thread )
   (void) thread;
   return ((std::size_t)-1);
 }
+
+//----------------------------------------------------------------------------
+
+std::size_t bit::platform::active_core()
+{
+  return ((std::size_t)-1);
+}

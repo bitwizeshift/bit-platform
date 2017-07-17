@@ -17,8 +17,7 @@ void bit::platform::set_affinity( std::size_t core_id )
   ::SetThreadAffinityMask( ::GetCurrentThread(), (1 << core_id) );
 }
 
-void
-  bit::platform::set_affinity( std::thread& thread, std::size_t core_id )
+void bit::platform::set_affinity( std::thread& thread, std::size_t core_id )
 {
   ::SetThreadAffinityMask( (::HANDLE) thread.native_handle(), (1 << core_id) );
 }
@@ -42,4 +41,11 @@ std::size_t bit::platform::affinity( std::thread& thread )
   ::SetThreadAffinityMask( (::HANDLE) thread.native_handle(), mask);
 
   return (std::size_t) mask;
+}
+
+//------------------------------------------------------------------------
+
+std::size_t bit::platform::active_core()
+{
+  return (std::size_t) ::GetCurrentProcessorNumber();
 }

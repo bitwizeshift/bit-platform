@@ -64,3 +64,10 @@ std::size_t bit::platform::affinity( std::thread& thread )
   ::pthread_t current_thread = thread.native_handle();
   return ::pthread_getaffinity_np( current_thread, sizeof(::cpu_set_t), &cpuset);
 }
+
+//----------------------------------------------------------------------------
+
+std::size_t bit::platform::active_core()
+{
+  return ::sched_getcpu();
+}

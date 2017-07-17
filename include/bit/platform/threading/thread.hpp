@@ -48,6 +48,13 @@ namespace bit {
     /// \return the affinity of the thread
     std::size_t affinity( std::thread& thread );
 
+    //------------------------------------------------------------------------
+
+    /// \brief Accesses the thread's active core
+    ///
+    /// \return the active core
+    std::size_t active_core();
+
   } // namespace platform
 } // namespace bit
 
