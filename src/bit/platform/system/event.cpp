@@ -52,6 +52,17 @@ bit::platform::window_event::window_event( const window_event& other )
 }
 
 //----------------------------------------------------------------------------
+
+bit::platform::window_event&
+  bit::platform::window_event::operator=( const window_event& other )
+  noexcept
+{
+  m_storage = other.m_storage;
+  m_type    = other.m_type;
+  return (*this);
+}
+
+//----------------------------------------------------------------------------
 // Element Access
 //----------------------------------------------------------------------------
 
@@ -110,6 +121,17 @@ bit::platform::keyboard_event::keyboard_event( const keyboard_event& other )
     new (&m_storage.keyup) storage_type(other.keyup());
     break;
   }
+}
+
+//----------------------------------------------------------------------------
+
+bit::platform::keyboard_event&
+  bit::platform::keyboard_event::operator=( const keyboard_event& other )
+  noexcept
+{
+  m_storage = other.m_storage;
+  m_type    = other.m_type;
+  return (*this);
 }
 
 //----------------------------------------------------------------------------
@@ -191,6 +213,17 @@ bit::platform::controller_event::controller_event( const controller_event& other
 }
 
 //----------------------------------------------------------------------------
+
+bit::platform::controller_event&
+  bit::platform::controller_event::operator=( const controller_event& other )
+  noexcept
+{
+  m_storage = other.m_storage;
+  m_type    = other.m_type;
+  return (*this);
+}
+
+//----------------------------------------------------------------------------
 // Element Access
 //----------------------------------------------------------------------------
 
@@ -228,6 +261,14 @@ const bit::platform::controller_event::button_data&
 //----------------------------------------------------------------------------
 // Element Access
 //----------------------------------------------------------------------------
+
+bit::platform::event::event()
+  noexcept
+  : m_storage()
+  , m_category(event_category::none)
+{
+
+}
 
 bit::platform::event::event( const controller_event& event )
   noexcept
@@ -268,7 +309,34 @@ bit::platform::event::event( const event& other )
   case event_category::window:
     new (&m_storage.window) storage_type(other.window());
     break;
+  default:
+    break;
   }
+}
+
+//----------------------------------------------------------------------------
+
+bit::platform::event&
+  bit::platform::event::operator=( const event& other )
+  noexcept
+{
+  // placement new is safe to use here without invoking a destructor,
+  // since all the types in the union are trivially destructible
+  switch(m_category) {
+  case event_category::controller:
+    new (&m_storage.controller) storage_type(other.controller());
+    break;
+  case event_category::keyboard:
+    new (&m_storage.keyboard) storage_type(other.keyboard());
+    break;
+  case event_category::window:
+    new (&m_storage.window) storage_type(other.window());
+    break;
+  default:
+    break;
+  }
+  m_category = other.m_category;
+  return (*this);
 }
 
 //----------------------------------------------------------------------------
