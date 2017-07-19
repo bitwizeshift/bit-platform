@@ -26,15 +26,18 @@
 namespace bit {
   namespace platform {
     namespace detail {
-      void* allocate_job();
-
-      template<typename T>
-      std::decay_t<T> decay_copy( T&& v ) { return std::forward<T>(v); }
-
       class job_queue;
 
       template<typename T>
       struct post_job_and_wait_impl;
+
+      template<typename T>
+      struct post_job_and_wait_this_impl;
+
+      void* allocate_job();
+
+      template<typename T>
+      std::decay_t<T> decay_copy( T&& v ) { return std::forward<T>(v); }
     } // namespace detail
 
     //////////////////////////////////////////////////////////////////////////
@@ -339,14 +342,6 @@ namespace bit {
       //----------------------------------------------------------------------
     public:
 
-      /// \brief Runs this job_dispatcher.
-      ///
-      /// \note The calling thread becomes a worker_thread upon invocation of
-      ///       this function. Care should be taken to not exhaust input
-      ///       and starve the worker threads; otherwise the system may never
-      ///       return.
-      void run();
-
       /// \brief Runs this job_dispatcher, invoking \p fn each iteration
       ///
       /// \note The calling thread becomes a worker_thread that invkes \p fn
@@ -421,11 +416,10 @@ namespace bit {
       /// \return the job
       job* get_job();
 
-      /// \brief Pushes a new job onto the queue at the specified \p index
+      /// \brief Pushes a job onto this queue
       ///
-      /// \param index the index of the queue to push
       /// \param j the job to push
-      void push_job( std::ptrdiff_t index, job* j );
+      void push_job( job* j );
 
       /// \brief Helps in processing jobs while a condition is met
       ///
@@ -448,25 +442,37 @@ namespace bit {
       void do_work();
 
       //----------------------------------------------------------------------
+      // This Dispatcher
+      //----------------------------------------------------------------------
+    private:
+
+      /// \brief Pushes a new job onto the currently active thread queue
+      ///
+      /// \param j the job to push
+      static void push_this_job( job* j );
+
+      /// \brief Waits for the job \p j to complete running
+      ///
+      /// \param j the job to wait on
+      static void wait_this( const job* j );
+
+      //----------------------------------------------------------------------
       // Friends
       //----------------------------------------------------------------------
     private:
 
       friend const job* post_job( job_dispatcher&, const job* );
+
+      friend const job* post_job( const job* );
+
+      friend void wait( const job* );
     };
 
     //------------------------------------------------------------------------
     // Free Functions
     //------------------------------------------------------------------------
 
-    /// \brief Makes a new job that invokes \p fn with \p args
-    ///
-    /// \param fn the function to invoke
-    /// \param args the arguments to forward to \p fn
-    /// \return the created job
-    template<typename Fn, typename...Args>
-    const job* make_job( Fn&& fn, Args&&...args );
-
+    /// \{
     /// \brief Makes a new job that invokes \p fn with \p args
     ///
     /// \param parent the parent of this job
@@ -474,18 +480,32 @@ namespace bit {
     /// \param args the arguments to forward to \p fn
     /// \return the created job
     template<typename Fn, typename...Args>
+    const job* make_job( Fn&& fn, Args&&...args );
+    template<typename Fn, typename...Args>
     const job* make_job( const job* parent, Fn&& fn, Args&&...args );
     template<typename Fn, typename...Args>
     const job* make_job( std::nullptr_t, Fn&&, Args&&... ) = delete;
+    /// \}
 
     //------------------------------------------------------------------------
 
-    /// \brief Posts a new job for execution to \p dispatcher
+    /// \brief Posts a job for execution to \p dispatcher
     ///
     /// \param dispatcher the dispatcher to post the job to
     /// \param job the job to dispatch
+    /// \return the posted job
     const job* post_job( job_dispatcher& dispatcher, const job* job );
     const job* post_job( job_dispatcher&, std::nullptr_t ) = delete;
+
+    /// \brief Posts a job for execution to the active dispatcher for the given
+    ///        thread
+    ///
+    /// \param job the job to dispatch
+    /// \return the posted job
+    const job* post_job( const job* job );
+    const job* post_job( std::nullptr_t ) = delete;
+
+    //------------------------------------------------------------------------
 
     /// \{
     /// \brief Creates and posts a job to the specified \p dispatcher
@@ -495,14 +515,29 @@ namespace bit {
     /// \param fn the function to invoke
     /// \param args the arguments to forward to \p fn
     /// \return the posted job
-    template<typename Fn, typename...Args>
+    template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
     const job* post_job( job_dispatcher& dispatcher, Fn&& fn, Args&&...args );
-    template<typename Fn, typename...Args>
+    template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
     const job* post_job( job_dispatcher& dispatcher,
                          const job* parent, Fn&& fn, Args&&...args );
     template<typename Fn, typename...Args>
     const job* post_job( job_dispatcher&,
                          std::nullptr_t, Fn&&, Args&&... ) = delete;
+    /// \}
+
+    /// \{
+    /// \brief Creates and posts a job to this thread's active dispatcher
+    ///
+    /// \param parent the parent job
+    /// \param fn the function to invoke
+    /// \param args the arguments to forward to \p fn
+    /// \return the posted job
+    template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
+    const job* post_job( Fn&& fn, Args&&...args );
+    template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
+    const job* post_job( const job* parent, Fn&& fn, Args&&...args );
+    template<typename Fn, typename...Args>
+    const job* post_job( std::nullptr_t, Fn&&, Args&&... ) = delete;
     /// \}
 
     //------------------------------------------------------------------------
@@ -519,10 +554,10 @@ namespace bit {
     /// \param fn the function to invoke
     /// \param args the arguments to forward to \p fn
     /// \return the result of the invocation
-    template<typename Fn, typename...Args>
+    template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
     stl::invoke_result_t<Fn,Args...>
       post_job_and_wait( job_dispatcher& dispatcher, Fn&& fn, Args&&...args );
-    template<typename Fn, typename...Args>
+    template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
     stl::invoke_result_t<Fn,Args...>
       post_job_and_wait( job_dispatcher& dispatcher,
                          const job* parent, Fn&& fn, Args&&...args );
@@ -530,6 +565,28 @@ namespace bit {
     stl::invoke_result_t<Fn,Args...>
       post_job_and_wait( job_dispatcher&,
                          std::nullptr_t, Fn&&, Args&&... ) = delete;
+    /// \}
+
+    /// \{
+    /// \brief Creates, posts, and waits for the completion of a specified
+    ///        job to the active dispatcher for the given thread
+    ///
+    /// This makes the result appear synchronous, despite the fact that it
+    /// may be invoked on a different thread.
+    ///
+    /// \param parent the parent job
+    /// \param fn the function to invoke
+    /// \param args the arguments to forward to \p fn
+    /// \return the result of the invocation
+    template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
+    stl::invoke_result_t<Fn,Args...>
+      post_job_and_wait( Fn&& fn, Args&&...args );
+    template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
+    stl::invoke_result_t<Fn,Args...>
+      post_job_and_wait( const job* parent, Fn&& fn, Args&&...args );
+    template<typename Fn, typename...Args>
+    stl::invoke_result_t<Fn,Args...>
+      post_job_and_wait( std::nullptr_t, Fn&&, Args&&... ) = delete;
     /// \}
 
     //------------------------------------------------------------------------
@@ -541,6 +598,13 @@ namespace bit {
     /// \param job the job to wait for
     void wait( job_dispatcher& dispatcher, const job* job );
     void wait( job_dispatcher&, std::nullptr_t ) = delete;
+
+    /// \brief Waits for the job \p job to finish executing, while servicing
+    ///        available jobs from the active \p dispatcher
+    ///
+    /// \param job the job to wait for
+    void wait( const job* job );
+    void wait( std::nullptr_t ) = delete;
 
   } // namespace platform
 } // namespace bit

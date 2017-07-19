@@ -36,6 +36,7 @@ namespace {
 
   thread_local bit::platform::job*  g_this_job     = nullptr;
   thread_local std::ptrdiff_t       g_thread_index = 0;
+  thread_local bit::platform::job_dispatcher* g_this_dispatcher = nullptr;
 
 } // namespace anonymous
 
@@ -257,13 +258,6 @@ bit::platform::job_dispatcher::~job_dispatcher()
 // Modifiers
 //----------------------------------------------------------------------------
 
-void bit::platform::job_dispatcher::run()
-{
-  start();
-
-  do_work();
-}
-
 void bit::platform::job_dispatcher::stop()
 {
   BIT_ASSERT( m_owner == std::this_thread::get_id(), "job_dispatcher can only be stopped on the creating thread");
@@ -305,6 +299,7 @@ void bit::platform::job_dispatcher::start()
   if( m_owner == std::thread::id() ) {
     m_owner = std::this_thread::get_id();
     g_thread_index = 0;
+    g_this_dispatcher = this;
   }
 
   BIT_ASSERT( m_owner == std::this_thread::get_id(), "job_dispatcher can only be started on the creating thread");
@@ -342,6 +337,7 @@ std::thread bit::platform::job_dispatcher::make_worker_thread( std::ptrdiff_t in
   return std::thread([this,index]()
   {
     g_thread_index = index;
+    g_this_dispatcher = this;
 
     ++m_running_threads;
     do_work();
@@ -385,10 +381,10 @@ bit::platform::job* bit::platform::job_dispatcher::get_job()
   return j;
 }
 
-void bit::platform::job_dispatcher::push_job( std::ptrdiff_t index, job* j )
+void bit::platform::job_dispatcher::push_job( job* j )
 {
   if( !m_running ) return;
-  m_queues[index]->push(j);
+  m_queues[g_thread_index]->push(j);
 }
 
 template<typename Condition>
@@ -420,20 +416,54 @@ void bit::platform::job_dispatcher::do_work()
 }
 
 //----------------------------------------------------------------------------
+// This Dispatcher
+//----------------------------------------------------------------------------
+
+void bit::platform::job_dispatcher::push_this_job( job* j )
+{
+  BIT_ASSERT( g_this_dispatcher, "push can only be called in a dispatcher's job queue" );
+
+  auto& dispatcher = *g_this_dispatcher;
+  dispatcher.push_job( j );
+}
+
+void bit::platform::job_dispatcher::wait_this( const job* j )
+{
+  BIT_ASSERT( g_this_dispatcher, "push can only be called in a dispatcher's job queue" );
+
+  auto& dispatcher = *g_this_dispatcher;
+  dispatcher.wait( j );
+}
+
+//----------------------------------------------------------------------------
 // Free Functions
 //----------------------------------------------------------------------------
 
 const bit::platform::job*
   bit::platform::post_job( job_dispatcher& dispatcher, const job* job )
 {
-  dispatcher.push_job( g_thread_index, const_cast<class job*>(job) );
+  dispatcher.push_job( const_cast<class job*>(job) );
 
   return job;
 }
 
+const bit::platform::job* bit::platform::post_job( const job* job )
+{
+  job_dispatcher::push_this_job( const_cast<class job*>(job) );
+
+  return job;
+}
+
+//----------------------------------------------------------------------------
+
 void bit::platform::wait( job_dispatcher& dispatcher, const job* job )
 {
   dispatcher.wait(job);
+}
+
+void bit::platform::wait( const job* job )
+{
+  job_dispatcher::wait_this(job);
 }
 
 namespace {
