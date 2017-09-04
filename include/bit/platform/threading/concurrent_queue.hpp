@@ -5,11 +5,13 @@
  *
  * \author Matthew Rodusek (matthew.rodusek@gmail.com)
  */
-
 #ifndef BIT_PLATFORM_THREADING_CONCURRENT_QUEUE_HPP
 #define BIT_PLATFORM_THREADING_CONCURRENT_QUEUE_HPP
 
 #include "spin_lock.hpp"
+
+#include <bit/stl/assert.hpp>
+
 #include <mutex>
 #include <condition_variable>
 #include <queue>
@@ -211,6 +213,7 @@ namespace bit {
 
       class container : public base_type
       {
+      public:
         using base_type::base_type;
 
         container( const container& other ) = default;

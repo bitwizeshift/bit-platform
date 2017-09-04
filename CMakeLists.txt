@@ -65,11 +65,13 @@ make_version_header("${CMAKE_CURRENT_BINARY_DIR}/include/bit/platform/version.hp
 set(headers
   # threading
   include/bit/platform/threading/concurrent_queue.hpp
+  include/bit/platform/threading/job_dispatcher.hpp
   include/bit/platform/threading/null_mutex.hpp
   include/bit/platform/threading/semaphore.hpp
   include/bit/platform/threading/shared_mutex.hpp
   include/bit/platform/threading/spin_lock.hpp
   include/bit/platform/threading/thread.hpp
+  include/bit/platform/threading/thread_pool.hpp
   include/bit/platform/threading/unlock_guard.hpp
   include/bit/platform/threading/waitable_event.hpp
 
@@ -99,6 +101,7 @@ if( WIN32 )
     # fiesystem
     src/bit/platform/filesystem/win32/disk_file_device.cpp
     src/bit/platform/filesystem/win32/disk_file.cpp
+    src/bit/platform/filesystem/win32/directory_watcher.cpp
 
     # input
     src/bit/platform/system/win32/keyboard.cpp
