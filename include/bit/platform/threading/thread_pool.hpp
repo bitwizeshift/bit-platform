@@ -22,12 +22,59 @@ namespace bit {
   namespace platform {
 
     //////////////////////////////////////////////////////////////////////////
+    /// \concept ThreadPool
+    ///
+    /// \brief This concept defines the required interface and semantics
+    ///        expected of a thread pool
+    ///
+    /// A \c ThreadPool has the ability to dispatch function calls onto a
+    /// pool of worker threads that will never return; or alternatively wait
+    /// for the return result with a blocking call
+    ///
+    /// The \c ThreadPool requirement expects the following.
+    ///
+    /// Provided:
+    ///
+    /// \c t - an instance of \c ThreadPool,
+    /// \c f - an invokable object/function
+    /// \c args - arguments to pass to the function (possibly 0)
+    ///
+    /// the following expressions must be well-formed with the expected
+    /// side-effects:
+    ///
+    /// \code
+    /// t.post( f, args... )
+    /// \endcode
+    /// \c t posts a job to the ThreadPool that will be executed whenever
+    /// possible. Both \c f and \c args... are copied before being executed,
+    /// as if by calling an imaginary function \c decay_copy.
+    ///
+    /// \code
+    /// auto v = t.post_and_wait( f, args... )
+    /// \endcode
+    /// \c t posts a job to the ThreadPool that will be executed whenever
+    /// possible. The call to this function blocks until \p f finishes
+    /// executing; at which point the return value of \c f is returned and
+    /// stored in \c v. Both \c f and \c args... are copied before being
+    /// executed, as if by calling an imaginary function \c decay_copy.
+    ///
+    /// where \c decay_copy is defined as
+    ///
+    /// \code
+    /// template<typename T>
+    /// std::decay_t<T> decay_copy(T&& v) { return std::forward<T>(v); }
+    /// \endcode
+    //////////////////////////////////////////////////////////////////////////
+
+
+    //////////////////////////////////////////////////////////////////////////
     /// \brief A basic thread pool system that uses a concurrent queue for
     ///        managing tasks to deploy
     ///
     /// This type is templated on the type of allocator to be used.
     ///
     /// \tparam Allocator the allocator for the thread data
+    /// \satisfies ThreadPool
     //////////////////////////////////////////////////////////////////////////
     template<typename Allocator>
     class basic_thread_pool
@@ -132,6 +179,7 @@ namespace bit {
     //////////////////////////////////////////////////////////////////////////
     /// \brief A thread pool that dispatches a thread for each job
     ///
+    /// \satisfies ThreadPool
     //////////////////////////////////////////////////////////////////////////
     class unlimited_thread_pool
     {
@@ -193,6 +241,8 @@ namespace bit {
     ///
     /// All functions are dispatched synchronously on the calling thread,
     /// rather than asynchronously.
+    ///
+    /// \satisfies ThreadPool
     //////////////////////////////////////////////////////////////////////////
     class sequential_thread_pool
     {
