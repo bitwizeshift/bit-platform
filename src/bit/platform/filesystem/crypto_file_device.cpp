@@ -2,7 +2,7 @@
 
 #include "crypto_file.hpp"
 
-#include <bit/stl/assert.hpp>
+#include <bit/stl/utilities/assert.hpp>
 
 //----------------------------------------------------------------------------
 // Synchronous Files

@@ -10,8 +10,12 @@
 #ifndef BIT_PLATFORM_FILESYSTEM_DETAIL_FILESYSTEM_ABSTRACT_FILE_HPP
 #define BIT_PLATFORM_FILESYSTEM_DETAIL_FILESYSTEM_ABSTRACT_FILE_HPP
 
-#include <bit/stl/stddef.hpp>
-#include <bit/stl/span.hpp>
+#include <bit/stl/containers/span.hpp>
+#include <bit/stl/utilities/types.hpp>
+#include <bit/stl/utilities/byte.hpp>
+#include <bit/stl/traits/composition/bool_constant.hpp> // stl::true_type, etc
+
+#include <cstddef> // std::size_t
 
 namespace bit {
   namespace platform {
@@ -101,10 +105,10 @@ namespace bit {
     ///
     /// The result is aliased as \c ::value
     template<typename T>
-    struct is_abstract_file : std::false_type{};
+    struct is_abstract_file : stl::false_type{};
 
     template<>
-    struct is_abstract_file<abstract_file> : std::true_type{};
+    struct is_abstract_file<abstract_file> : stl::true_type{};
 
   } // namespace platform
 } // namespace bit

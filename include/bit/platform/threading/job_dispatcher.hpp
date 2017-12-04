@@ -9,11 +9,10 @@
 #ifndef BIT_PLATFORM_THREADING_JOB_DISPATCHER_HPP
 #define BIT_PLATFORM_THREADING_JOB_DISPATCHER_HPP
 
-#include <bit/stl/stddef.hpp>
-#include <bit/stl/utility.hpp>
-#include <bit/stl/memory.hpp>     // bit::stl::destroy_at
-#include <bit/stl/functional.hpp> // bit::stl::invoke
-#include <bit/stl/assert.hpp>     // BIT_ASSERT
+#include <bit/stl/utilities/byte.hpp>
+#include <bit/stl/utilities/uninitialized_storage.hpp> // bit::stl::destroy_at
+#include <bit/stl/utilities/invoke.hpp>                // bit::stl::invoke
+#include <bit/stl/utilities/assert.hpp>                // BIT_ASSERT
 
 #include <cstdlib> // std::size_t
 #include <atomic>  // std::atomic
@@ -39,6 +38,8 @@ namespace bit {
       template<typename T>
       std::decay_t<T> decay_copy( T&& v ) { return std::forward<T>(v); }
     } // namespace detail
+
+    std::ptrdiff_t worker_thread_id();
 
     //////////////////////////////////////////////////////////////////////////
     /// \brief A job is the unit of dispatch used in the job_system

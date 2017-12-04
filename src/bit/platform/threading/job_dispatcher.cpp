@@ -1,6 +1,6 @@
 #include <bit/platform/threading/job_dispatcher.hpp>
 #include <bit/platform/threading/thread.hpp>
-#include <bit/stl/assert.hpp>
+#include <bit/stl/utilities/assert.hpp>
 
 #include <random> // std::random_device, sdt::uniform_distribution, etc
 #include <memory> // std::unique_ptr
@@ -39,6 +39,11 @@ namespace {
   thread_local bit::platform::job_dispatcher* g_this_dispatcher = nullptr;
 
 } // namespace anonymous
+
+std::ptrdiff_t bit::platform::worker_thread_id()
+{
+  return g_thread_index;
+}
 
 //============================================================================
 // job_queue
@@ -321,14 +326,7 @@ void bit::platform::job_dispatcher::start()
 
   // Sets the affinity on every thread
   if( m_set_affinity ) {
-
-    auto const cpus = std::thread::hardware_concurrency();
-    auto index = std::size_t{1u};
-
     set_affinity( 0 );
-    for( auto& thread : m_threads ) {
-      set_affinity( thread, index++ % cpus );
-    }
   }
 }
 
@@ -336,6 +334,11 @@ std::thread bit::platform::job_dispatcher::make_worker_thread( std::ptrdiff_t in
 {
   return std::thread([this,index]()
   {
+    if( m_set_affinity ) {
+      auto const cpus = std::thread::hardware_concurrency();
+      set_affinity( static_cast<std::size_t>(index) % cpus );
+    }
+
     g_thread_index = index;
     g_this_dispatcher = this;
 
@@ -412,7 +415,7 @@ void bit::platform::job_dispatcher::do_work()
 
   // This duplication is to avoid breaking cache coherency per iteration
   // in the normal running case.
-  help_while( [&]{ return has_remaining_jobs(); } );
+  help_while( [&]{ return !m_queues[g_thread_index]->empty(); } );
 }
 
 //----------------------------------------------------------------------------

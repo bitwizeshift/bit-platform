@@ -1,0 +1,3 @@
+[submodule "external/bit/stl"]
+	path = external/bit/stl
+	url = https://github.com/bitwizeshift/bit-stl

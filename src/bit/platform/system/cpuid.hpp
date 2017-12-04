@@ -12,8 +12,8 @@
 # pragma once
 #endif
 
-#include <bit/stl/stddef.hpp>
-#include <bit/stl/assert.hpp>
+#include <bit/stl/utilities/types.hpp>
+#include <bit/stl/utilities/assert.hpp>
 
 namespace bit {
   namespace platform {

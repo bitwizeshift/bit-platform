@@ -10,7 +10,7 @@
 
 #include "spin_lock.hpp"
 
-#include <bit/stl/assert.hpp>
+#include <bit/stl/utilities/assert.hpp>
 
 #include <mutex>
 #include <condition_variable>

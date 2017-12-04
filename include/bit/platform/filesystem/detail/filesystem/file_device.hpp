@@ -10,7 +10,7 @@
 #ifndef BIT_PLATFORM_FILESYSTEM_DETAIL_FILESYSTEM_FILE_DEVICE_HPP
 #define BIT_PLATFORM_FILESYSTEM_DETAIL_FILESYSTEM_FILE_DEVICE_HPP
 
-#include <bit/stl/string_view.hpp>
+#include <bit/stl/containers/string_view.hpp>
 
 namespace bit {
   namespace platform {

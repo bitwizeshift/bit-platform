@@ -21,12 +21,7 @@ option(BIT_PLATFORM_GENERATE_DOCUMENTATION "Generates doxygen documentation" off
 
 project("BitPlatform")
 
-if( NOT TARGET "bit::stl" )
-  find_package(BIT REQUIRED COMPONENTS Stl)
-endif()
-if( NOT TARGET "bit::math" )
-  find_package(BIT REQUIRED COMPONENTS Math)
-endif()
+add_subdirectory("external/bit/stl")
 
 if( CMAKE_BUILD_TYPE STREQUAL "" )
   message(STATUS "CMAKE_BUILD_TYPE not set; defaulting to 'Debug'")
@@ -43,7 +38,7 @@ set(BIT_PLATFORM_VERSION_PATCH 0 CACHE STRING "patch version of bit::platform" F
 
 set(BIT_PLATFORM_VERSION "${BIT_PLATFORM_VERSION_MAJOR}.${BIT_PLATFORM_VERSION_MINOR}.${BIT_PLATFORM_VERSION_PATCH}" CACHE STRING "version of bit::platform" FORCE)
 
-message(STATUS "bit::platform ${BIT_PLATFORM_VERSION} (${BIT_PLATFORM_BRANCH} ${BIT_PLATFORM_BUILD_NUMBER})")
+message(STATUS "bit::platform ${BIT_PLATFORM_VERSION}")
 
 #-----------------------------------------------------------------------------
 # bit::platform
@@ -149,7 +144,7 @@ set(source_files
 add_library(bit_platform ${source_files})
 add_library(bit::platform ALIAS bit_platform)
 
-target_link_libraries(bit_platform PUBLIC bit::stl bit::math)
+target_link_libraries(bit_platform PUBLIC bit::stl)
 
 target_include_directories(bit_platform PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>

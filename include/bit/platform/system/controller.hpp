@@ -9,6 +9,8 @@
 #ifndef BIT_PLATFORM_SYSTEM_CONTROLLER_HPP
 #define BIT_PLATFORM_SYSTEM_CONTROLLER_HPP
 
+#include <cstddef> // std::size_t
+
 namespace bit {
   namespace platform {
 
@@ -41,7 +43,7 @@ namespace bit {
       ///        controller
       ///
       /// Semantic names are given to common buttons in controllers
-      enum class button : stl::s32
+      enum class button
       {
         button0,  button1,  button2,  button3,  button4,  button5,
         button6,  button7,  button8,  button9,  button10, button11,

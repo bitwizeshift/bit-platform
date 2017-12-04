@@ -1,7 +1,7 @@
 #include <bit/platform/filesystem/directory_watcher.hpp>
 
-#include <bit/stl/string_view.hpp>
-#include <bit/stl/delegate.hpp>
+#include <bit/stl/containers/string_view.hpp>
+#include <bit/stl/utilities/delegate.hpp>
 
 #ifndef NOMINMAX
 # define NOMINMAX 1

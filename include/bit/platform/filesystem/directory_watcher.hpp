@@ -10,8 +10,9 @@
 #ifndef BIT_PLATFORM_FILESYSTEM_DIRECTORY_WATCHER_HPP
 #define BIT_PLATFORM_FILESYSTEM_DIRECTORY_WATCHER_HPP
 
-#include <bit/stl/stddef.hpp>   // stl::function_t
-#include <bit/stl/delegate.hpp> // stl::delegate
+#include <bit/stl/utilities/types.hpp>   // stl::function_t
+#include <bit/stl/utilities/delegate.hpp> // stl::delegate
+#include <bit/stl/containers/string_view.hpp>
 
 #include <memory> // std::unique_ptr
 

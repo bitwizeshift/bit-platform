@@ -14,6 +14,7 @@
 
 // bit::stl
 #include <bit/stl/string_view.hpp>
+#include <bit/stl/array_view.hpp>
 
 // TODO: Generate a header that contains the native handle type through the
 //       build system
@@ -30,6 +31,18 @@ namespace bit {
       none,       ///< style with no border nor title bar
       fullscreen, ///< fullscreen with no borderr or title bar
       resizeable, ///< resizeable window with a close button and title bar
+    };
+
+    struct window_location
+    {
+      std::size_t x;
+      std::size_t y;
+    };
+
+    struct window_size
+    {
+      std::size_t width;
+      std::size_t height;
     };
 
     //////////////////////////////////////////////////////////////////////////
@@ -57,7 +70,7 @@ namespace bit {
       //----------------------------------------------------------------------
     public:
 
-      explicit window( stl::string_view title );
+      explicit window( stl::zstring_view title );
 
       ~window();
 
@@ -66,13 +79,16 @@ namespace bit {
       //----------------------------------------------------------------------
     public:
 
-      void set_title( stl::string_view title );
+      void set_title( stl::zstring_view title );
 
       void set_style( window_style style );
 
       void set_position( std::ptrdiff_t x, std::ptrdiff_t y );
 
       void set_size( std::size_t width, std::size_t height );
+
+      void set_icon( std::size_t width, std::size_t height,
+                     stl::array_view<stl::byte> rgba );
 
       //----------------------------------------------------------------------
       // Events
@@ -116,7 +132,7 @@ namespace bit {
       //----------------------------------------------------------------------
     private:
 
-      class Impl;
+      class impl;
 
       //----------------------------------------------------------------------
       // Private Members

@@ -9,7 +9,7 @@
 #ifndef BIT_PLATFORM_SYSTEM_PROCESSOR_HPP
 #define BIT_PLATFORM_SYSTEM_PROCESSOR_HPP
 
-#include <bit/stl/string_view.hpp>
+#include <bit/stl/containers/string_view.hpp>
 
 #include <cstdlib> // std::size_t
 

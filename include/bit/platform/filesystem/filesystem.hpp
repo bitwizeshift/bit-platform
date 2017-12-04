@@ -9,9 +9,10 @@
 #define BIT_PLATFORM_FILESYSTEM_FILESYSTEM_HPP
 
 // bit::stl headers
-#include <bit/stl/stddef.hpp>
-#include <bit/stl/span.hpp>
-#include <bit/stl/type_traits.hpp>
+#include <bit/stl/containers/span.hpp>
+#include <bit/stl/containers/string_view.hpp>
+#include <bit/stl/traits/composition/negation.hpp>
+#include <bit/stl/traits/composition/conjunction.hpp>
 
 // std headers
 #include <memory>
@@ -193,6 +194,12 @@ namespace bit {
       ///
       /// \param f the asynchronous file to close
       void close( async_file& f );
+
+      /// \brief Closes all open files within this filesystem at once
+      ///
+      /// Any existing file handles that have not yet been closed are
+      /// immediately invalidated.
+      void close_all();
 
       //----------------------------------------------------------------------
       // Private Members

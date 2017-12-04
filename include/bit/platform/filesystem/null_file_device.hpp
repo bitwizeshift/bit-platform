@@ -5,7 +5,6 @@
  *
  * \author Matthew Rodusek (matthew.rodusek@gmail.com)
  */
-
 #ifndef BIT_PLATFORM_FILESYSTEM_NULL_FILE_DEVICE_HPP
 #define BIT_PLATFORM_FILESYSTEM_NULL_FILE_DEVICE_HPP
 

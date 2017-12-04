@@ -1,6 +1,8 @@
 #include <bit/platform/filesystem/filesystem.hpp>
 
-#include <bit/stl/assert.hpp>
+#include <bit/stl/utilities/assert.hpp>
+
+#include <stdexcept> // std::out_of_range
 
 //============================================================================
 // file_device
@@ -96,7 +98,12 @@ bit::platform::filesystem::filesystem( size_type devices )
 
 void bit::platform::filesystem::mount( file_device* device )
 {
-  BIT_ASSERT_OR_THROW(std::out_of_range, m_current < m_size, "filesystem::mount: too many devices mounted");
+#if BIT_COMPILER_EXCEPTIONS_ENABLED
+  if( m_current >= m_size )
+    throw std::out_of_range("filesystem::mount: too many devices mounted");
+#else
+  BIT_ASSERT( m_current < m_size, "filesystem::mount: too many devices mounted");
+#endif
 
   m_devices[m_current++] = device;
 }

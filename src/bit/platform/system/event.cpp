@@ -1,6 +1,6 @@
 #include <bit/platform/system/event.hpp>
 
-#include <bit/stl/assert.hpp>
+#include <bit/stl/utilities/assert.hpp>
 
 //============================================================================
 // window_event
@@ -70,7 +70,7 @@ const bit::platform::window_event::resize_data&
   bit::platform::window_event::resize()
   const
 {
-  BIT_ASSERT_OR_THROW(bad_event_cast,m_type==event_type::resized, BIT_EMPTY);
+  BIT_ASSERT(m_type==event_type::resized, "");
 
   return m_storage.resize;
 }
@@ -79,7 +79,7 @@ const bit::platform::window_event::move_data&
   bit::platform::window_event::move()
   const
 {
-  BIT_ASSERT_OR_THROW(bad_event_cast,m_type==event_type::moved, BIT_EMPTY);
+  BIT_ASSERT(m_type==event_type::moved, "");
 
   return m_storage.move;
 }
@@ -142,7 +142,7 @@ const bit::platform::keyboard_event::keydown_data&
   bit::platform::keyboard_event::keydown()
   const
 {
-  BIT_ASSERT_OR_THROW(bad_event_cast,m_type==event_type::keydown, BIT_EMPTY);
+  BIT_ASSERT(m_type==event_type::keydown, "");
 
   return m_storage.keydown;
 }
@@ -151,7 +151,7 @@ const bit::platform::keyboard_event::keyup_data&
   bit::platform::keyboard_event::keyup()
   const
 {
-  BIT_ASSERT_OR_THROW(bad_event_cast,m_type==event_type::keyup, BIT_EMPTY);
+  BIT_ASSERT(m_type==event_type::keyup, "");
 
   return m_storage.keyup;
 }
@@ -231,7 +231,7 @@ const bit::platform::controller_event::joystick_data&
   bit::platform::controller_event::joystick()
   const
 {
-  BIT_ASSERT_OR_THROW(bad_event_cast,m_type==event_type::joystick, BIT_EMPTY);
+  BIT_ASSERT(m_type==event_type::joystick, "");
 
   return m_storage.joystick;
 }
@@ -240,7 +240,7 @@ const bit::platform::controller_event::trigger_data&
   bit::platform::controller_event::trigger()
   const
 {
-  BIT_ASSERT_OR_THROW(bad_event_cast,m_type==event_type::trigger, BIT_EMPTY);
+  BIT_ASSERT(m_type==event_type::trigger, "");
 
   return m_storage.trigger;
 }
@@ -249,7 +249,7 @@ const bit::platform::controller_event::button_data&
   bit::platform::controller_event::button()
   const
 {
-  BIT_ASSERT_OR_THROW(bad_event_cast,m_type==event_type::button_press || m_type==event_type::button_release, BIT_EMPTY);
+  BIT_ASSERT(m_type==event_type::button_press || m_type==event_type::button_release, "");
 
   return m_storage.button;
 }
@@ -346,7 +346,7 @@ bit::platform::event&
 const bit::platform::controller_event& bit::platform::event::controller()
   const
 {
-  BIT_ASSERT_OR_THROW(bad_event_cast,m_category==event_category::controller, BIT_EMPTY);
+  BIT_ASSERT(m_category==event_category::controller, "");
 
   return m_storage.controller;
 }
@@ -354,7 +354,7 @@ const bit::platform::controller_event& bit::platform::event::controller()
 const bit::platform::keyboard_event& bit::platform::event::keyboard()
   const
 {
-  BIT_ASSERT_OR_THROW(bad_event_cast,m_category==event_category::keyboard, BIT_EMPTY);
+  BIT_ASSERT(m_category==event_category::keyboard, "");
 
   return m_storage.keyboard;
 }
@@ -362,7 +362,7 @@ const bit::platform::keyboard_event& bit::platform::event::keyboard()
 const bit::platform::window_event& bit::platform::event::window()
   const
 {
-  BIT_ASSERT_OR_THROW(bad_event_cast,m_category==event_category::window, BIT_EMPTY);
+  BIT_ASSERT(m_category==event_category::window, "");
 
   return m_storage.window;
 }

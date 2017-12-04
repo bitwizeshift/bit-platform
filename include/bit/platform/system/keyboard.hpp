@@ -9,7 +9,7 @@
 #ifndef BIT_PLATFORM_INPUT_KEYBOARD_HPP
 #define BIT_PLATFORM_INPUT_KEYBOARD_HPP
 
-#include <bit/stl/enum.hpp>
+#include <bit/stl/utilities/enum.hpp>
 
 namespace bit {
   namespace platform {
@@ -174,13 +174,13 @@ const bit::platform::key* bit::stl::enum_traits<bit::platform::key>::begin();
 template<>
 const bit::platform::key* bit::stl::enum_traits<bit::platform::key>::end();
 
-template<>
-bit::stl::string_view
-  bit::stl::enum_traits<bit::platform::key>::to_string( bit::platform::key k );
-
-template<>
-bit::platform::key
-  bit::stl::enum_traits<bit::platform::key>::from_string( bit::stl::string_view s );
+//template<>
+//bit::stl::string_view
+//  bit::stl::enum_traits<bit::platform::key>::to_string( bit::platform::key k );
+//
+//template<>
+//bit::platform::key
+//  bit::stl::enum_traits<bit::platform::key>::from_string( bit::stl::string_view s );
 
 
 extern template struct bit::stl::enum_traits<bit::platform::key>;

@@ -16,6 +16,12 @@ namespace {
   /// \brief Sets process DPI awareness in Windows
   void set_process_dpi_aware() noexcept;
 
+  bool create_gl_window( ::HDC* gdi, ::HGLRC* context, ::HWND* window,
+                         ::HINSTANCE* instance );
+
+  void destroy_gl_window( ::HDC* gdi, ::HGLRC* context, ::HWND* window,
+                          ::HINSTANCE* instance );
+
 //  ::LRESULT CALLBACK event_handler( ::HWND handle, ::UINT message,
 //                                    ::WPARAM wparam, ::LPARAM lparam )
 //  {
@@ -54,14 +60,19 @@ namespace {
 
 } // namespace
 
-bit::platform::window::window( stl::string_view title )
+class bit::platform::window::impl
 {
 
+};
+
+bit::platform::window::window( stl::zstring_view title )
+{
+  ::MessageBoxA(NULL,"window::window: Failed to register window class","Error",MB_OK|MB_ICONEXCLAMATION);
 }
 
 bit::platform::window::~window() = default;
 
-void bit::platform::window::set_title( stl::string_view title )
+void bit::platform::window::set_title( stl::zstring_view title )
 {
   ::SetWindowTextA(m_handle, title.data());
 }
@@ -139,6 +150,53 @@ namespace { // anonymous
       }
 
       ::FreeLibrary(user32Dll);
+    }
+  }
+
+
+
+  bool create_gl_window( ::HDC* gdi, ::HGLRC* context, ::HWND* window,
+                         ::HINSTANCE* instance )
+  {
+
+  }
+
+  void destroy_gl_window( ::HDC* gdi, ::HGLRC* context, ::HWND* window,
+                          ::HINSTANCE* instance )
+  {
+    ::ChangeDisplaySettings(nullptr,0);
+    ::ShowCursor(true);
+
+    if( *context ){
+      // Are We Able To Release The DC And RC Contexts?
+      if(!::wglMakeCurrent(nullptr,nullptr)) {
+        ::MessageBoxA(nullptr,"Release Of DC And RC Failed.","SHUTDOWN ERROR",MB_OK | MB_ICONINFORMATION);
+      }
+
+      // Are We Able To Delete The RC?
+      if(!::wglDeleteContext(*context)) {
+        ::MessageBoxA(nullptr,"Release Rendering Context Failed.","SHUTDOWN ERROR",MB_OK | MB_ICONINFORMATION);
+      }
+      *context=nullptr;
+    }
+
+    // Are We Able To Release The DC
+    if(*gdi && !::ReleaseDC(*window,*gdi)) {
+      ::MessageBoxA(nullptr,"Release Device Context Failed.","SHUTDOWN ERROR",MB_OK | MB_ICONINFORMATION);
+      *gdi=nullptr;
+    }
+
+    // Are We Able To Destroy The Window?
+    if(*window && !DestroyWindow(*window)) {
+      ::MessageBoxA(nullptr,"Could Not Release hWnd.","SHUTDOWN ERROR",MB_OK | MB_ICONINFORMATION);
+      *window=nullptr;
+    }
+
+    // Are We Able To Unregister Class
+    if(!::UnregisterClass("OpenGL",*instance)) {
+      // Set hInstance To NULL
+      ::MessageBoxA(nullptr,"Could Not Unregister Class.","SHUTDOWN ERROR",MB_OK | MB_ICONINFORMATION);
+      *instance=nullptr;
     }
   }
 } // anonymous namespace

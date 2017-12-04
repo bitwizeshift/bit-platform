@@ -15,8 +15,8 @@
 #include <thread> // std::thread
 #include <future> // std::packaged_task
 
-#include <bit/stl/utility.hpp>     // stl::apply
-#include <bit/stl/type_traits.hpp> // stl::invoke_result_t
+#include <bit/stl/utilities/tuple.hpp>  // stl::apply
+#include <bit/stl/utilities/invoke.hpp> // stl::invoke_result_t
 
 namespace bit {
   namespace platform {

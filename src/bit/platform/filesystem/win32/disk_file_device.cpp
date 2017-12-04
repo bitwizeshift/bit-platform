@@ -2,7 +2,7 @@
 
 #include "disk_file.hpp"
 
-#include <bit/stl/assert.hpp>
+#include <bit/stl/utilities/assert.hpp>
 
 bit::platform::abstract_file*
   bit::platform::disk_file_device::open( stl::string_view path, mode m )

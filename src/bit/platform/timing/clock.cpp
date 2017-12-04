@@ -1,5 +1,5 @@
 #include <bit/platform/timing/clock.hpp>
-#include <bit/stl/assert.hpp>
+#include <bit/stl/utilities/assert.hpp>
 
 #include <chrono>
 

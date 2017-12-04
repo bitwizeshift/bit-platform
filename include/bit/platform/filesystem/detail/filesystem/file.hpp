@@ -12,7 +12,7 @@
 #ifndef BIT_PLATFORM_FILESYSTEM_DETAIL_FILESYSTEM_FILE_HPP
 #define BIT_PLATFORM_FILESYSTEM_DETAIL_FILESYSTEM_FILE_HPP
 
-#include <bit/stl/span.hpp>
+#include <bit/stl/containers/span.hpp>
 
 namespace bit {
   namespace platform {
