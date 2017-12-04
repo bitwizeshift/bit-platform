@@ -4,21 +4,29 @@ enable_testing()
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/modules")
 
-include(AddIndependenceCheck)
-include(GitBuildInformation)
+include(AddHeaderSelfContainmentTest)
 include(MakeVersionHeader)
+include(EnableCCache)
 
 #-----------------------------------------------------------------------------
 # Project Setup
 #-----------------------------------------------------------------------------
 
-option(BIT_PLATFORM_COMPILE_INDEPENDENCE_TESTS "Include each header independently in a .cpp file to determine header independence" on)
+# enable cacche to speed up compilations
+enable_ccache()
+
+option(BIT_PLATFORM_COMPILE_HEADER_SELF_CONTAINMENT_TESTS "Include each header independently in a .cpp file to determine header independence" on)
 option(BIT_PLATFORM_COMPILE_UNIT_TESTS "Compile and run the unit tests for this library" on)
+option(BIT_PLATFORM_GENERATE_DOCUMENTATION "Generates doxygen documentation" off)
 
 project("BitPlatform")
 
-find_package(Bit REQUIRED COMPONENTS Stl Math)
-find_package(OpenAL REQUIRED)
+if( NOT TARGET "bit::stl" )
+  find_package(BIT REQUIRED COMPONENTS Stl)
+endif()
+if( NOT TARGET "bit::math" )
+  find_package(BIT REQUIRED COMPONENTS Math)
+endif()
 
 if( CMAKE_BUILD_TYPE STREQUAL "" )
   message(STATUS "CMAKE_BUILD_TYPE not set; defaulting to 'Debug'")
@@ -29,20 +37,11 @@ endif()
 # Version Info
 #-----------------------------------------------------------------------------
 
-git_build_information( PATCH_VARIABLE BIT_PLATFORM_VERSION_PATCH
-                       BUILD_VARIABLE BIT_PLATFORM_BUILD_NUMBER
-                       BRANCH_VARIABLE BIT_PLATFORM_BRANCH
-                       REF v0.2
-                       PATHSPECS ${CMAKE_CURRENT_LIST_DIR}/include
-                                 ${CMAKE_CURRENT_LIST_DIR}/cmake
-                                 ${CMAKE_CURRENT_LIST_FILE}
-)
-
 set(BIT_PLATFORM_VERSION_MAJOR 0 CACHE STRING "major version of bit::platform" FORCE)
 set(BIT_PLATFORM_VERSION_MINOR 2 CACHE STRING "minor version of bit::platform" FORCE)
-set(BIT_PLATFORM_VERSION_PATCH ${BIT_PLATFORM_VERSION_PATCH} CACHE STRING "patch version of bit::platform" FORCE)
+set(BIT_PLATFORM_VERSION_PATCH 0 CACHE STRING "patch version of bit::platform" FORCE)
+
 set(BIT_PLATFORM_VERSION "${BIT_PLATFORM_VERSION_MAJOR}.${BIT_PLATFORM_VERSION_MINOR}.${BIT_PLATFORM_VERSION_PATCH}" CACHE STRING "version of bit::platform" FORCE)
-set(BIT_PLATFORM_BUILD_NUMBER "${BIT_PLATFORM_BUILD_NUMBER}" CACHE STRING "build number of bit::platform" FORCE)
 
 message(STATUS "bit::platform ${BIT_PLATFORM_VERSION} (${BIT_PLATFORM_BRANCH} ${BIT_PLATFORM_BUILD_NUMBER})")
 
@@ -50,16 +49,16 @@ message(STATUS "bit::platform ${BIT_PLATFORM_VERSION} (${BIT_PLATFORM_BRANCH} ${
 # bit::platform
 #-----------------------------------------------------------------------------
 
-set(CMAKE_CXX_VERSION 14)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED on)
+set(CMAKE_CXX_EXTENSIONS off)
 
 make_version_header("${CMAKE_CURRENT_BINARY_DIR}/include/bit/platform/version.hpp"
   MAJOR ${BIT_PLATFORM_VERSION_MAJOR}
   MINOR ${BIT_PLATFORM_VERSION_MINOR}
   PATCH ${BIT_PLATFORM_VERSION_PATCH}
-  BUILD ${BIT_PLATFORM_BUILD_NUMBER}
   PREFIX BIT_PLATFORM
   SUFFIX "a"
-  TAG ${BIT_PLATFORM_BRANCH}
 )
 
 set(headers
@@ -147,39 +146,44 @@ set(source_files
   ${platform_source_files}
 )
 
-add_library(platform ${source_files})
-add_library(bit::platform ALIAS platform)
+add_library(bit_platform ${source_files})
+add_library(bit::platform ALIAS bit_platform)
 
-target_link_libraries(platform PUBLIC bit::stl bit::math)
+target_link_libraries(bit_platform PUBLIC bit::stl bit::math)
 
-set_target_properties(platform PROPERTIES
-  CXX_STANDARD 14
-  CXX_STANDARD_REQUIRED true
-)
-
-target_include_directories(platform PUBLIC
+target_include_directories(bit_platform PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
 )
-target_compile_options(platform PUBLIC -std=c++14
-  $<$<CONFIG:DEBUG>:-DDEBUG>
-  $<$<CONFIG:RELEASE>:-DNDEBUG -DRELEASE>
+target_compile_definitions(bit_platform PUBLIC
+  $<$<CONFIG:DEBUG>:DEBUG>
+  $<$<CONFIG:RELEASE>:NDEBUG RELEASE>
 )
 
 #-----------------------------------------------------------------------------
 # bit::platform : Independence Tests
 #-----------------------------------------------------------------------------
 
-if( BIT_PLATFORM_COMPILE_INDEPENDENCE_TESTS )
+if( BIT_PLATFORM_COMPILE_HEADER_SELF_CONTAINMENT_TESTS )
 
-  add_independence_check(platform_independence ${headers})
-  target_compile_options(platform_independence PRIVATE -std=c++14
-    $<$<CONFIG:DEBUG>:-DDEBUG>
-    $<$<CONFIG:RELEASE>:-DNDEBUG -DRELEASE>
+  add_header_self_containment_test(bit_platform_header_self_containment_test ${headers})
+  target_compile_definitions(bit_platform_header_self_containment_test PRIVATE
+    $<$<CONFIG:DEBUG>:DEBUG>
+    $<$<CONFIG:RELEASE>:NDEBUG RELEASE>
   )
-  target_include_directories(platform_independence PRIVATE $<TARGET_PROPERTY:platform,INCLUDE_DIRECTORIES>)
+  target_include_directories(bit_platform_header_self_containment_test PRIVATE
+    $<TARGET_PROPERTY:bit_platform,INCLUDE_DIRECTORIES>
+  )
 
-  add_library(bit::platform::independence ALIAS platform_independence)
+  add_library(bit::platform::header_self_containment_test ALIAS bit_platform_header_self_containment_test)
+
+  if( "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    target_compile_options(bit_platform_header_self_containment_test PRIVATE -Wall -Werror -pedantic)
+  elseif( "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" )
+    target_compile_options(bit_platform_header_self_containment_test PRIVATE -Wall -Werror -pedantic)
+  elseif( "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC" )
+    # TODO: Determine MSVC necessary compiler flags
+  endif()
 
 endif()
 
@@ -203,7 +207,7 @@ if( EXISTS "$ENV{BIT_HOME}" )
   set(CMAKE_INSTALL_PREFIX "$ENV{BIT_HOME}")
 endif()
 
-export_library( TARGETS platform
+export_library( TARGETS bit_platform
                 PACKAGE Platform
                 VERSION ${BIT_PLATFORM_VERSION}
                 MAJOR_VERSION ${BIT_PLATFORM_VERSION_MAJOR}
