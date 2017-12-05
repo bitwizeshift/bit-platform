@@ -505,6 +505,24 @@ inline bit::platform::job::job()
 
 }
 
+template<typename Fn, typename...Args, typename, typename>
+inline bit::platform::job::job( Fn&& fn, Args&&...args )
+  : m_job(static_cast<detail::job_storage*>(detail::allocate_job()))
+{
+  new (m_job) detail::job_storage( std::forward<Fn>(fn),
+                                   std::forward<Args>(args)... );
+}
+
+
+template<typename Fn, typename...Args, typename>
+inline bit::platform::job::job( const job& parent, Fn&& fn, Args&&...args )
+  : m_job(static_cast<detail::job_storage*>(detail::allocate_job()))
+{
+  new (m_job) detail::job_storage( parent.m_job,
+                                   std::forward<Fn>(fn),
+                                   std::forward<Args>(args)... );
+}
+
 inline bit::platform::job::job( job&& other )
   noexcept
   : m_job(other.m_job)
@@ -512,13 +530,13 @@ inline bit::platform::job::job( job&& other )
   other.m_job = nullptr;
 }
 
+
 //-----------------------------------------------------------------------------
 
-inline bit::platform::job::job( detail::job_storage& storage )
-  noexcept
-  : m_job(&storage)
+inline bit::platform::job::~job()
 {
-
+  // Only finalize if job is not null
+  if( m_job ) m_job->finalize();
 }
 
 //-----------------------------------------------------------------------------
@@ -533,13 +551,6 @@ inline bit::platform::job& bit::platform::job::operator=( job&& other )
   return (*this);
 }
 
-//-----------------------------------------------------------------------------
-
-inline bit::platform::job::~job()
-{
-  // Only finalize if job is not null
-  if( m_job ) m_job->finalize();
-}
 
 //-----------------------------------------------------------------------------
 // Observers
@@ -634,12 +645,7 @@ template<typename Fn, typename...Args>
 inline bit::platform::job
   bit::platform::make_job( Fn&& fn, Args&&...args )
 {
-  auto* p = detail::allocate_job();
-
-  auto* storage = new (p) detail::job_storage( std::forward<Fn>(fn),
-                                               std::forward<Args>(args)... );
-
-  return job{*storage};
+  return job{ std::forward<Fn>(fn), std::forward<Args>(args)... };
 }
 
 
@@ -647,15 +653,7 @@ template<typename Fn, typename...Args>
 inline bit::platform::job
   bit::platform::make_job( const job& parent, Fn&& fn, Args&&...args )
 {
-  auto* p = detail::allocate_job();
-
-  // const_cast is safe here, since all jobs are allocated as non-const
-  // objects.
-  auto* storage = new (p) detail::job_storage( parent.m_job,
-                                               std::forward<Fn>(fn),
-                                               std::forward<Args>(args)... );
-
-  return job{*storage};
+  return job{ parent, std::forward<Fn>(fn), std::forward<Args>(args)... };
 }
 
 //=============================================================================

@@ -301,7 +301,8 @@ namespace {
   std::ptrdiff_t generate_number_in_range( std::ptrdiff_t low,
                                            std::ptrdiff_t high )
   {
-    thread_local auto s_engine = std::mt19937( std::random_device{}() );
+    static std::random_device device{};
+    thread_local auto s_engine = std::mt19937( device() );
     std::uniform_int_distribution<> distribution(low,high);
 
     return distribution(s_engine);

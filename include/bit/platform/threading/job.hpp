@@ -1,3 +1,4 @@
+
 /**
  * \file job.hpp
  *
@@ -73,6 +74,25 @@ namespace bit {
       /// Calling \p execute() on a null
       job() noexcept;
 
+      /// \brief Constructs a job from the given invocable \p fn and the
+      ///        supplied \p args
+      ///
+      /// \param fn the function to invoke
+      /// \param args the arguments to forward to the function
+      template<typename Fn, typename...Args,
+               typename=std::enable_if_t<stl::is_invocable<Fn,Args...>::value>,
+               typename=std::enable_if_t<!std::is_same<std::decay_t<Fn>,job>::value>>
+      explicit job( Fn&& fn, Args&&... args );
+
+      /// \brief Constructs a job that is spawned as a sub-job of \p parent
+      ///
+      /// \param parent the parent job
+      /// \param fn the function to invoke
+      /// \param args the arguments to forward to the function
+      template<typename Fn, typename...Args,
+               typename=std::enable_if_t<stl::is_invocable<Fn,Args...>::value>>
+      explicit job( const job& parent, Fn&& fn, Args&&...args );
+
       /// \brief Move-constructs this job from an existing job
       ///
       /// \param other the other job to move from
@@ -80,6 +100,11 @@ namespace bit {
 
       // Deleted copy constructor
       job( const job& other ) = delete;
+
+      //-----------------------------------------------------------------------
+
+      /// \brief Destructs the stored job data
+      ~job();
 
       //-----------------------------------------------------------------------
 
@@ -91,11 +116,6 @@ namespace bit {
 
       // Deleted copy assignment
       job& operator=( const job& other ) = delete;
-
-      //-----------------------------------------------------------------------
-
-      /// \brief Destructs the stored job data
-      ~job();
 
       //-----------------------------------------------------------------------
       // Observers
@@ -132,27 +152,11 @@ namespace bit {
       explicit operator bool() const noexcept;
 
       //-----------------------------------------------------------------------
-      // Private Constructors
-      //-----------------------------------------------------------------------
-    private:
-
-      /// \brief Constructs a job pointing to the underlying job details
-      ///
-      /// \param storage the storage data
-      explicit job( detail::job_storage& storage ) noexcept;
-
-      //-----------------------------------------------------------------------
       // Private Members
       //-----------------------------------------------------------------------
     private:
 
       detail::job_storage* m_job;
-
-      template<typename Fn, typename...Args>
-      friend job make_job( Fn&&, Args&&... );
-
-      template<typename Fn, typename...Args>
-      friend job make_job( const job&, Fn&&, Args&&... );
 
       friend bool operator==( const job&, const job& ) noexcept;
 
@@ -201,7 +205,10 @@ namespace bit {
     /// \}
 
     ///////////////////////////////////////////////////////////////////////////
+    /// \brief A non-owning handle that refers to a given \ref job
     ///
+    /// A job_handle can be used to wait on a job that has already been posted
+    /// to a given dispatching mechanism, or it can be used
     ///
     ///////////////////////////////////////////////////////////////////////////
     class job_handle
