@@ -1,11 +1,11 @@
 /**
  * \file waitable_event.hpp
  *
- * \brief todo: fill in documentation
+ * \brief This header contains a synchronization primitive for waiting
+ *        on an event
  *
  * \author Matthew Rodusek (matthew.rodusek@gmail.com)
  */
-
 #ifndef BIT_PLATFORM_THREADING_WAITABLE_EVENT_HPP
 #define BIT_PLATFORM_THREADING_WAITABLE_EVENT_HPP
 

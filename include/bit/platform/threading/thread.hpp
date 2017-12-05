@@ -14,17 +14,9 @@
 namespace bit {
   namespace platform {
 
-    //------------------------------------------------------------------------
+    //-------------------------------------------------------------------------
     // Affinity
-    //------------------------------------------------------------------------
-
-    /// \brief Sets this thread's affinity to a specific core id
-    ///
-    /// \brief This may not be implemented in some architectures that do not
-    ///        support thread affinity
-    ///
-    /// \param core_id the id of the core
-    void set_affinity( std::size_t core_id );
+    //-------------------------------------------------------------------------
 
     /// \brief Sets the specified thread's affinity to a specific core id
     ///
@@ -35,12 +27,7 @@ namespace bit {
     /// \param core_id the id of the core
     void set_affinity( std::thread& thread, std::size_t core_id );
 
-    //------------------------------------------------------------------------
-
-    /// \brief Accesses the current thread's affinity
-    ///
-    /// \return the affinity of the thread
-    std::size_t affinity();
+    //-------------------------------------------------------------------------
 
     /// \brief Accesses the specified thread's affinity
     ///
@@ -48,13 +35,35 @@ namespace bit {
     /// \return the affinity of the thread
     std::size_t affinity( std::thread& thread );
 
-    //------------------------------------------------------------------------
+    //-------------------------------------------------------------------------
 
-    /// \brief Accesses the thread's active core
-    ///
-    /// \return the active core
-    std::size_t active_core();
+    namespace this_thread {
 
+      //-----------------------------------------------------------------------
+      // Affinity
+      //-----------------------------------------------------------------------
+
+      /// \brief Sets this thread's affinity to a specific core id
+      ///
+      /// \brief This may not be implemented in some architectures that do not
+      ///        support thread affinity
+      ///
+      /// \param core_id the id of the core
+      void set_affinity( std::size_t core_id );
+
+      /// \brief Accesses the current thread's affinity
+      ///
+      /// \return the affinity of the thread
+      std::size_t affinity();
+
+      //-----------------------------------------------------------------------
+
+      /// \brief Accesses the thread's active core
+      ///
+      /// \return the active core
+      std::size_t active_core();
+
+    } // namespace this_thread
   } // namespace platform
 } // namespace bit
 

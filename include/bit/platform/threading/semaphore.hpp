@@ -184,5 +184,4 @@ inline bit::platform::semaphore::native_handle_type
   return m_semaphore;
 }
 
-
 #endif /* BIT_PLATFORM_THREADING_SEMAPHORE_HPP */

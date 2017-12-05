@@ -8,9 +8,9 @@
 
 bit::platform::spin_lock::spin_lock()
   noexcept
-  : m_lock(ATOMIC_FLAG_INIT)
+  : m_lock()
 {
-
+  m_lock.clear();
 }
 
 //----------------------------------------------------------------------------

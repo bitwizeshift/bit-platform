@@ -6,7 +6,6 @@
  *
  * \author Matthew Rodusek (matthew.rodusek@gmail.com)
  */
-
 #ifndef BIT_PLATFORM_THREADING_SPIN_LOCK_HPP
 #define BIT_PLATFORM_THREADING_SPIN_LOCK_HPP
 

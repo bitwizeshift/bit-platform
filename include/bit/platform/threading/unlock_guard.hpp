@@ -7,7 +7,6 @@
  *
  * \author Matthew Rodusek (matthew.rodusek@gmail.com)
  */
-
 #ifndef BIT_PLATFORM_THREADING_UNLOCK_GUARD_HPP
 #define BIT_PLATFORM_THREADING_UNLOCK_GUARD_HPP
 

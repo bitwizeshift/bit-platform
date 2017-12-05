@@ -1,11 +1,10 @@
 /**
  * \file null_mutex.hpp
  *
- * \brief todo: fill in documentation
+ * \brief This header contains an implementation of a null Lockable
  *
  * \author Matthew Rodusek (matthew.rodusek@gmail.com)
  */
-
 #ifndef BIT_PLATFORM_THREADING_NULL_MUTEX_HPP
 #define BIT_PLATFORM_THREADING_NULL_MUTEX_HPP
 

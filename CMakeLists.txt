@@ -59,13 +59,16 @@ make_version_header("${CMAKE_CURRENT_BINARY_DIR}/include/bit/platform/version.hp
 set(headers
   # threading
   include/bit/platform/threading/concurrent_queue.hpp
-  include/bit/platform/threading/job_dispatcher.hpp
+  include/bit/platform/threading/dispatcher.hpp
+  include/bit/platform/threading/dispatch_queue.hpp
+  include/bit/platform/threading/job.hpp
   include/bit/platform/threading/null_mutex.hpp
   include/bit/platform/threading/semaphore.hpp
   include/bit/platform/threading/shared_mutex.hpp
   include/bit/platform/threading/spin_lock.hpp
   include/bit/platform/threading/thread.hpp
   include/bit/platform/threading/thread_pool.hpp
+  include/bit/platform/threading/true_share.hpp
   include/bit/platform/threading/unlock_guard.hpp
   include/bit/platform/threading/waitable_event.hpp
 
@@ -116,7 +119,9 @@ endif()
 
 set(source_files
   # threading
-  src/bit/platform/threading/job_dispatcher.cpp
+  src/bit/platform/threading/dispatch_queue.cpp
+  src/bit/platform/threading/dispatcher.cpp
+  src/bit/platform/threading/job.cpp
   src/bit/platform/threading/spin_lock.cpp
 
   # filesystem
