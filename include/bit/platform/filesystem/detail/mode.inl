@@ -1,5 +1,5 @@
-#ifndef BIT_PLATFORM_FILESYSTEM_DETAIL_FILESYSTEM_MODE_INL
-#define BIT_PLATFORM_FILESYSTEM_DETAIL_FILESYSTEM_MODE_INL
+#ifndef BIT_PLATFORM_FILESYSTEM_DETAIL_MODE_INL
+#define BIT_PLATFORM_FILESYSTEM_DETAIL_MODE_INL
 
 //----------------------------------------------------------------------------
 // Operations
@@ -43,4 +43,4 @@ inline bit::platform::mode& bit::platform::operator ^= (mode& lhs, mode rhs)
   return (lhs = (lhs ^ rhs));
 }
 
-#endif /* BIT_PLATFORM_FILESYSTEM_DETAIL_FILESYSTEM_MODE_INL */
+#endif /* BIT_PLATFORM_FILESYSTEM_DETAIL_MODE_INL */

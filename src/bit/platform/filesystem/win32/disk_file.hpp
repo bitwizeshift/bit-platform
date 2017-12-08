@@ -8,7 +8,14 @@
 #ifndef SRC_BIT_PLATFORM_FILESYSTEM_WIN32_DISK_FILE_HPP
 #define SRC_BIT_PLATFORM_FILESYSTEM_WIN32_DISK_FILE_HPP
 
-#include <bit/platform/filesystem/filesystem.hpp>
+#include <bit/platform/filesystem/file.hpp>
+#include <bit/platform/filesystem/disk_filesystem.hpp>
+
+#include <bit/memory/allocators/any_allocator.hpp>
+
+#include <bit/stl/containers/string_view.hpp>
+#include <bit/stl/containers/span.hpp>
+#include <bit/stl/utilities/delegate.hpp>
 
 namespace bit {
   namespace platform {
@@ -16,15 +23,17 @@ namespace bit {
     //////////////////////////////////////////////////////////////////////////
     /// \brief A low-level disk device implementation for Windows
     //////////////////////////////////////////////////////////////////////////
-    class disk_file : public abstract_file
+    class disk_file : public file_interface
     {
       //----------------------------------------------------------------------
       // Public Member Types
       //----------------------------------------------------------------------
     public:
 
-      using size_type  = abstract_file::size_type;
-      using index_type = abstract_file::index_type;
+      using size_type        = file_interface::size_type;
+      using index_type       = file_interface::index_type;
+      using native_handle    = void*;
+      using destroy_delegate = stl::delegate<void(void*)>;
 
       //----------------------------------------------------------------------
       // Constructor
@@ -35,15 +44,18 @@ namespace bit {
       ///
       /// \param path the path to the file
       /// \param m the mode of the file
-      explicit disk_file( stl::string_view path, mode m );
+      /// \param destroy the function to destroy this disk file
+      explicit disk_file( stl::string_view path,
+                          mode m,
+                          destroy_delegate destroy );
 
       //----------------------------------------------------------------------
       // File API
       //----------------------------------------------------------------------
     public:
 
-      /// \brief Closes this null_file if it's currently open
-      void close() override;
+      /// \brief Destroys this disk_file
+      void destroy() override;
 
       /// \brief Reads data into the specified \p buffer
       ///
@@ -51,7 +63,7 @@ namespace bit {
       ///
       /// \param buffer a span of bytes to write into
       /// \return a span containing the bytes read
-      size_type read( stl::span<stl::byte> buffer ) override;
+      stl::span<char> read( stl::span<char> buffer ) override;
 
       /// \brief Writes data into the specified \p buffer
       ///
@@ -59,7 +71,7 @@ namespace bit {
       ///
       /// \param buffer a span of bytes to write to the file
       /// \return a span containing the bytes written
-      size_type write( stl::span<const stl::byte> buffer ) override;
+      stl::span<const char> write( stl::span<const char> buffer ) override;
 
       //----------------------------------------------------------------------
       // Observers
@@ -70,6 +82,11 @@ namespace bit {
       ///
       /// \return the current position in the file
       index_type tell() const override;
+
+      /// \brief Returns the size of the file in bytes
+      ///
+      /// \return the size of the file in bytes
+      size_type size() const override;
 
       //----------------------------------------------------------------------
       // Seeking
@@ -94,9 +111,8 @@ namespace bit {
       //----------------------------------------------------------------------
     private:
 
-      using native_handle = void*;
-
-      native_handle m_file; ///< The underlying file handle
+      native_handle    m_file;    ///< The underlying file handle
+      destroy_delegate m_destroy; ///< Function to destroy this disk file
     };
 
   } // namespace platform

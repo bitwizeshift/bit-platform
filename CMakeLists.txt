@@ -21,7 +21,7 @@ option(BIT_PLATFORM_GENERATE_DOCUMENTATION "Generates doxygen documentation" off
 
 project("BitPlatform")
 
-add_subdirectory("external/bit/stl")
+find_package(Bit REQUIRED COMPONENTS Stl Memory)
 
 if( CMAKE_BUILD_TYPE STREQUAL "" )
   message(STATUS "CMAKE_BUILD_TYPE not set; defaulting to 'Debug'")
@@ -73,11 +73,10 @@ set(headers
   include/bit/platform/threading/waitable_event.hpp
 
   # filesystem
-  include/bit/platform/filesystem/filesystem.hpp
-  include/bit/platform/filesystem/null_file_device.hpp
-  include/bit/platform/filesystem/disk_file_device.hpp
-  include/bit/platform/filesystem/crypto_file_device.hpp
-  include/bit/platform/filesystem/random_file_device.hpp
+  include/bit/platform/filesystem/detail/tags.hpp
+  include/bit/platform/filesystem/disk_filesystem.hpp
+  include/bit/platform/filesystem/file.hpp
+  include/bit/platform/filesystem/mode.hpp
 
   # timing
   include/bit/platform/timing/clock.hpp
@@ -96,7 +95,7 @@ if( WIN32 )
     src/bit/platform/threading/win32/semaphore.cpp
 
     # fiesystem
-    src/bit/platform/filesystem/win32/disk_file_device.cpp
+    src/bit/platform/filesystem/win32/disk_filesystem.cpp
     src/bit/platform/filesystem/win32/disk_file.cpp
     src/bit/platform/filesystem/win32/directory_watcher.cpp
 
@@ -125,13 +124,13 @@ set(source_files
   src/bit/platform/threading/spin_lock.cpp
 
   # filesystem
-  src/bit/platform/filesystem/filesystem.cpp
-  src/bit/platform/filesystem/null_file.cpp
-  src/bit/platform/filesystem/null_file_device.cpp
-  src/bit/platform/filesystem/crypto_file.cpp
-  src/bit/platform/filesystem/crypto_file_device.cpp
-  src/bit/platform/filesystem/random_file.cpp
-  src/bit/platform/filesystem/random_file_device.cpp
+  # src/bit/platform/filesystem/filesystem.cpp
+  # src/bit/platform/filesystem/null_file.cpp
+  # src/bit/platform/filesystem/null_file_device.cpp
+  # src/bit/platform/filesystem/crypto_file.cpp
+  # src/bit/platform/filesystem/crypto_file_device.cpp
+  # src/bit/platform/filesystem/random_file.cpp
+  # src/bit/platform/filesystem/random_file_device.cpp
 
   # timing
   src/bit/platform/timing/clock.cpp
@@ -149,7 +148,7 @@ set(source_files
 add_library(bit_platform ${source_files})
 add_library(bit::platform ALIAS bit_platform)
 
-target_link_libraries(bit_platform PUBLIC bit::stl)
+target_link_libraries(bit_platform PUBLIC bit::stl bit::memory)
 
 target_include_directories(bit_platform PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
@@ -216,3 +215,6 @@ export_library( TARGETS bit_platform
                               "${CMAKE_CURRENT_BINARY_DIR}/include"
                 NAMESPACE "bit::"
                 PREFIX_PACKAGE )
+
+add_executable(main filesystem.cpp)
+target_link_libraries(main PRIVATE bit::platform)

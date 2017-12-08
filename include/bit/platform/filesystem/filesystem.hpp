@@ -8,6 +8,7 @@
 #ifndef BIT_PLATFORM_FILESYSTEM_FILESYSTEM_HPP
 #define BIT_PLATFORM_FILESYSTEM_FILESYSTEM_HPP
 
+
 // bit::stl headers
 #include <bit/stl/containers/span.hpp>
 #include <bit/stl/containers/string_view.hpp>
@@ -26,46 +27,6 @@
 
 namespace bit {
   namespace platform {
-    namespace detail {
-      struct async_tag{};
-      struct sync_tag{};
-    } // namespace detail
-
-    //------------------------------------------------------------------------
-    // Tags
-    //------------------------------------------------------------------------
-
-    /// \brief Tag used for tag-dispatching synchronous file API calls
-#ifndef BIT_DOXYGEN
-    inline void sync( detail::sync_tag ){}
-#else
-    void sync( /* implementation defined */ );
-#endif
-
-    /// \brief Tag used for tag-dispatching asynchronous file API calls
-#ifndef BIT_DOXYGEN
-    inline void async( detail::async_tag ){}
-#else
-    void async( /* implementation defined */ );
-#endif
-
-    //------------------------------------------------------------------------
-    // Tag Types
-    //------------------------------------------------------------------------
-
-    /// \brief The type of the sync tag
-#ifndef BIT_DOXYGEN
-    using sync_t  = void(*)(detail::sync_tag);
-#else
-    using sync_t = void(*)( /* implementation defined */ );
-#endif
-
-    /// \brief The type of the async tag
-#ifndef BIT_DOXYGEN
-    using async_t = void(*)(detail::async_tag);
-#else
-    using async_t = void(*)( /* implementation defined */ );
-#endif
 
     //////////////////////////////////////////////////////////////////////////
     /// \brief A representation of a stateful filesystem type
