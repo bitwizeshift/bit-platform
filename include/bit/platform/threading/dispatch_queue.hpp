@@ -2,15 +2,14 @@
  * \file dispatch_queue.hpp
  *
  * \brief This header contains the implementation of a queue used for
- *        dispatching jobs sequentially
+ *        dispatching tasks sequentially
  *
  * \author Matthew Rodusek (matthew.rodusek@gmail.com)
  */
 #ifndef BIT_PLATFORM_THREADING_DISPATCH_QUEUE_HPP
 #define BIT_PLATFORM_THREADING_DISPATCH_QUEUE_HPP
 
-#include "job.hpp" // job
-
+#include <bit/platform/threading/task.hpp> // task
 #include <bit/stl/utilities/invoke.hpp>
 
 #include <atomic>  // std::atomic<bool>
@@ -22,11 +21,11 @@
 namespace bit {
   namespace platform {
     namespace detail {
-      class job_queue;
+      class task_queue;
     } // namespace detail
 
     ///////////////////////////////////////////////////////////////////////////
-    /// \brief A dispatch queue that operates on jobs in a sequential,
+    /// \brief A dispatch queue that operates on tasks in a sequential,
     ///        thread-safe manner
     ///
     /// Posting an operation is thread-safe, and may be done from any thread.
@@ -71,42 +70,42 @@ namespace bit {
 
       /// \brief Signals to stop running this dispatch_queue
       ///
-      /// The remaining enqueued jobs will be invoked before this dispatch_queue
-      /// comes to a full stop -- but any further calls to post_job will be
+      /// The remaining enqueued tasks will be invoked before this dispatch_queue
+      /// comes to a full stop -- but any further calls to post_task will be
       /// silently ignored.
       void stop();
 
-      /// \brief Waits for a job \p job to be completed
+      /// \brief Waits for a task \p task to be completed
       ///
-      /// The calling thread participates in executing jobs while waiting
-      /// for \p job to complete.
+      /// The calling thread participates in executing tasks while waiting
+      /// for \p task to complete.
       ///
-      /// \param job the job to wait for
-      void wait( job_handle job );
+      /// \param task the task to wait for
+      void wait( task_handle task );
 
       //-----------------------------------------------------------------------
 
       /// \{
-      /// \brief Posts a job in this dispatch queue
+      /// \brief Posts a task in this dispatch queue
       ///
-      /// \param parent the parent job
+      /// \param parent the parent task
       /// \param fn the function to dispatch
       /// \param args the arguments to forward to the function
       template<typename Fn, typename...Args>
       void post( Fn&& fn, Args&&...args );
       template<typename Fn, typename...Args>
-      void post( const job& parent, Fn&& fn, Args&&...args );
+      void post( const task& parent, Fn&& fn, Args&&...args );
       /// \}
 
-      /// \brief Posts a job in this dispatch queue
+      /// \brief Posts a task in this dispatch queue
       ///
-      /// \param job the job to post
-      void post_job( job job );
+      /// \param task the task to post
+      void post_task( task task );
 
       /// \{
-      /// \brief Posts a job in this dispatch queue, waiting for the result
+      /// \brief Posts a task in this dispatch queue, waiting for the result
       ///
-      /// \param parent the parent job
+      /// \param parent the parent task
       /// \param fn the function to dispatch
       /// \param args the arguments to forward to the function
       /// \return the result of the function
@@ -115,7 +114,7 @@ namespace bit {
         post_and_wait( Fn&& fn, Args&&...args );
       template<typename Fn, typename...Args>
       stl::invoke_result_t<Fn,Args...>
-        post_and_wait( const job& parent, Fn&& fn, Args&&...args );
+        post_and_wait( const task& parent, Fn&& fn, Args&&...args );
       /// \}
 
       //-----------------------------------------------------------------------
@@ -123,7 +122,7 @@ namespace bit {
       //-----------------------------------------------------------------------
     private:
 
-      std::unique_ptr<detail::job_queue> m_queue;
+      std::unique_ptr<detail::task_queue> m_queue;
       std::thread             m_thread;
       std::mutex              m_mutex;
       std::condition_variable m_cv;
@@ -134,46 +133,46 @@ namespace bit {
       //-----------------------------------------------------------------------
     private:
 
-      /// \brief The thread function that operates on the job queue
+      /// \brief The thread function that operates on the task queue
       void run();
 
-      /// \brief Gets a job from the current queue, if one exists -- or waits
+      /// \brief Gets a task from the current queue, if one exists -- or waits
       ///        until one becomes available
       ///
-      /// \return the job
-      job get_job();
+      /// \return the task
+      task get_task();
     };
 
     //-------------------------------------------------------------------------
     // Free Functions
     //-------------------------------------------------------------------------
 
-    /// \brief Posts a job for execution to \p queue
+    /// \brief Posts a task for execution to \p queue
     ///
-    /// \param queue the dispatch_queue to post the job to
-    /// \param job the job to dispatch
-    void post_job( dispatch_queue& queue, job job );
+    /// \param queue the dispatch_queue to post the task to
+    /// \param task the task to dispatch
+    void post_task( dispatch_queue& queue, task task );
 
-    /// \brief Waits for the job based on the handle
+    /// \brief Waits for the task based on the handle
     ///
     /// \param queue the queue to wait on
-    /// \param job the handle to wait for
-    void wait( dispatch_queue& queue, job_handle job );
+    /// \param task the handle to wait for
+    void wait( dispatch_queue& queue, task_handle task );
 
     //-------------------------------------------------------------------------
 
     /// \{
-    /// \brief Creates and posts a job to the specified \p queue
+    /// \brief Creates and posts a task to the specified \p queue
     ///
-    /// \param queue the dispatch_queue to post the job to
-    /// \param parent the parent job
+    /// \param queue the dispatch_queue to post the task to
+    /// \param parent the parent task
     /// \param fn the function to invoke
     /// \param args the arguments to forward to \p fn
     template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
     void post( dispatch_queue& queue, Fn&& fn, Args&&...args );
     template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
     void post( dispatch_queue& queue,
-               const job& parent, Fn&& fn, Args&&...args );
+               const task& parent, Fn&& fn, Args&&...args );
     template<typename Fn, typename...Args>
     void post( dispatch_queue&, std::nullptr_t, Fn&&, Args&&... ) = delete;
     /// \}
@@ -182,13 +181,13 @@ namespace bit {
 
     /// \{
     /// \brief Creates, posts, and waits for the completion of a specified
-    ///        job.
+    ///        task.
     ///
     /// This makes the result appear synchronous, despite the fact that it
     /// may be invoked on a different thread.
     ///
-    /// \param queue the dispatch_queue to post the job to
-    /// \param parent the parent job
+    /// \param queue the dispatch_queue to post the task to
+    /// \param parent the parent task
     /// \param fn the function to invoke
     /// \param args the arguments to forward to \p fn
     /// \return the result of the invocation
@@ -198,7 +197,7 @@ namespace bit {
     template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
     stl::invoke_result_t<Fn,Args...>
       post_and_wait( dispatch_queue& queue,
-                     const job& parent, Fn&& fn, Args&&...args );
+                     const task& parent, Fn&& fn, Args&&...args );
     template<typename Fn, typename...Args>
     stl::invoke_result_t<Fn,Args...>
       post_and_wait( dispatch_queue&,
@@ -212,28 +211,28 @@ namespace bit {
     ///        the active argument
     namespace this_dispatch_queue {
 
-      /// \brief Posts a job for execution to the active dispatch_queue
+      /// \brief Posts a task for execution to the active dispatch_queue
       ///
-      /// \param job the job to dispatch
-      void post_job( job job );
+      /// \param task the task to dispatch
+      void post_task( task task );
 
-      /// \brief Waits for the job based on the handle
+      /// \brief Waits for the task based on the handle
       ///
-      /// \param job the handle to wait for
-      void wait( job_handle job );
+      /// \param task the handle to wait for
+      void wait( task_handle task );
 
       //-----------------------------------------------------------------------
 
       /// \{
-      /// \brief Creates and posts a job to the specified \p queue
+      /// \brief Creates and posts a task to the specified \p queue
       ///
-      /// \param parent the parent job
+      /// \param parent the parent task
       /// \param fn the function to invoke
       /// \param args the arguments to forward to \p fn
       template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
       void post( Fn&& fn, Args&&...args );
       template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
-      void post( const job& parent, Fn&& fn, Args&&...args );
+      void post( const task& parent, Fn&& fn, Args&&...args );
       template<typename Fn, typename...Args>
       void post( std::nullptr_t, Fn&&, Args&&... ) = delete;
       /// \}

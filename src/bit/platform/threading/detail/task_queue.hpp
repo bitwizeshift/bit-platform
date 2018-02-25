@@ -1,15 +1,14 @@
 /**
- * \file job_queue.hpp
+ * \file task_queue.hpp
  *
  * \brief TODO: Add description
  *
  * \author Matthew Rodusek (matthew.rodusek@gmail.com)
  */
-#ifndef SRC_BIT_PLATFORM_THREADING_DETAIL_JOB_QUEUE_HPP
-#define SRC_BIT_PLATFORM_THREADING_DETAIL_JOB_QUEUE_HPP
+#ifndef SRC_BIT_PLATFORM_THREADING_DETAIL_TASK_QUEUE_HPP
+#define SRC_BIT_PLATFORM_THREADING_DETAIL_TASK_QUEUE_HPP
 
-#include <bit/platform/threading/job.hpp> // job
-
+#include <bit/platform/threading/task.hpp> // task
 #include <array>   // std::array
 #include <mutex>   // std::mutex
 #include <array>   // std::array
@@ -20,48 +19,48 @@ namespace bit {
     namespace detail {
 
     //=========================================================================
-    // job_queue
+    // task_queue
     //=========================================================================
 
     ///////////////////////////////////////////////////////////////////////////
     ///
     ///
     ///////////////////////////////////////////////////////////////////////////
-    class job_queue
+    class task_queue
     {
       //-----------------------------------------------------------------------
       // Constructor
       //-----------------------------------------------------------------------
     public:
 
-      job_queue();
+      task_queue();
 
       //-----------------------------------------------------------------------
       // Modifiers
       //-----------------------------------------------------------------------
     public:
 
-      /// \brief Pushes a new job into the queue
+      /// \brief Pushes a new task into the queue
       ///
-      /// \param j the job to push
-      void push( job j );
+      /// \param j the task to push
+      void push( task j );
 
-      /// \brief Pops a job from the front of this job_queue
+      /// \brief Pops a task from the front of this task_queue
       ///
-      /// \return the popped job, or nullptr on failure
-      job pop();
+      /// \return the popped task, or nullptr on failure
+      task pop();
 
-      /// \brief Steals a job from the back of this job_queue
+      /// \brief Steals a task from the back of this task_queue
       ///
-      /// \return the stolen job, or nullptr on failure
-      job steal();
+      /// \return the stolen task, or nullptr on failure
+      task steal();
 
       //-----------------------------------------------------------------------
       // Capacity
       //-----------------------------------------------------------------------
     public:
 
-      /// \brief Queries whether this job_queue is empty
+      /// \brief Queries whether this task_queue is empty
       ///
       /// \return \c true when empty
       bool empty() const noexcept;
@@ -71,16 +70,16 @@ namespace bit {
       //-----------------------------------------------------------------------
     private:
 
-      static auto constexpr max_jobs = job::max_jobs;
+      static auto constexpr max_tasks = task::max_tasks;
 
-      std::array<job,max_jobs> m_jobs;
-      std::ptrdiff_t           m_bottom;
-      std::ptrdiff_t           m_top;
-      mutable std::mutex       m_lock;
+      std::array<task,max_tasks> m_tasks;
+      std::ptrdiff_t             m_bottom;
+      std::ptrdiff_t             m_top;
+      mutable std::mutex         m_lock;
     };
 
     } // namespace detail
   } // namespace platform
 } // namespace bit
 
-#endif /* SRC_BIT_PLATFORM_THREADING_DETAIL_JOB_QUEUE_HPP */
+#endif /* SRC_BIT_PLATFORM_THREADING_DETAIL_TASK_QUEUE_HPP */

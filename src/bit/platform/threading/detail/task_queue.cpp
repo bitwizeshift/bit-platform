@@ -1,12 +1,11 @@
-#include "job_queue.hpp"
-
 #include <utility> // std::move
+#include "task_queue.hpp"
 
 //----------------------------------------------------------------------------
 // Constructor
 //----------------------------------------------------------------------------
 
-bit::platform::detail::job_queue::job_queue()
+bit::platform::detail::task_queue::task_queue()
   : m_bottom(0),
     m_top(0)
 {
@@ -17,40 +16,40 @@ bit::platform::detail::job_queue::job_queue()
 // Modifiers
 //----------------------------------------------------------------------------
 
-void bit::platform::detail::job_queue::push( job j )
+void bit::platform::detail::task_queue::push( task j )
 {
   std::lock_guard<std::mutex> lock(m_lock);
 
-  m_jobs[m_bottom++ % max_jobs] = std::move(j);
+  m_tasks[m_bottom++ % max_tasks] = std::move(j);
 }
 
 //----------------------------------------------------------------------------
 
-bit::platform::job bit::platform::detail::job_queue::pop()
+bit::platform::task bit::platform::detail::task_queue::pop()
 {
   std::lock_guard<std::mutex> lock(m_lock);
 
-  // If there are no jobs, return null
-  if( m_bottom <= m_top ) return job{};
+  // If there are no tasks, return null
+  if( m_bottom <= m_top ) return task{};
 
-  return std::move(m_jobs[--m_bottom % max_jobs]);
+  return std::move(m_tasks[--m_bottom % max_tasks]);
 }
 
-bit::platform::job bit::platform::detail::job_queue::steal()
+bit::platform::task bit::platform::detail::task_queue::steal()
 {
   std::lock_guard<std::mutex> lock(m_lock);
 
-  // If there are no jobs, return null
-  if( m_bottom <= m_top ) return job{};
+  // If there are no tasks, return null
+  if( m_bottom <= m_top ) return task{};
 
-  return std::move(m_jobs[m_top++ % max_jobs]);
+  return std::move(m_tasks[m_top++ % max_tasks]);
 }
 
 //----------------------------------------------------------------------------
 // Capacity
 //----------------------------------------------------------------------------
 
-bool bit::platform::detail::job_queue::empty()
+bool bit::platform::detail::task_queue::empty()
   const noexcept
 {
   std::lock_guard<std::mutex> lock(m_lock);

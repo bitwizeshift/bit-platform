@@ -6,7 +6,7 @@
 
 #include <cassert> // assert
 
-#include "detail/job_queue.hpp" // detail::job_queue
+#include "detail/task_queue.hpp" // detail::task_queue
 
 //=============================================================================
 // Anonymous Declarations
@@ -14,10 +14,10 @@
 
 namespace {
 
-  /// \brief Gets the address of this thread's active job queue
+  /// \brief Gets the address of this thread's active task queue
   ///
-  /// \return pointer to the job queue
-//  bit::platform::detail::job_queue* get_job_queue();
+  /// \return pointer to the task queue
+//  bit::platform::detail::task_queue* get_task_queue();
 
   //---------------------------------------------------------------------------
   // Globals
@@ -37,7 +37,7 @@ namespace {
 
 bit::platform::dispatch_queue::dispatch_queue()
   : m_is_running(false),
-    m_queue(std::make_unique<detail::job_queue>()) // HACK: temporary m_queue
+    m_queue(std::make_unique<detail::task_queue>()) // HACK: temporary m_queue
 {
 
 }
@@ -68,23 +68,23 @@ void bit::platform::dispatch_queue::stop()
   m_thread.join();
 }
 
-void bit::platform::dispatch_queue::wait( job_handle job )
+void bit::platform::dispatch_queue::wait( task_handle task )
 {
-  // wait until job is completed
+  // wait until task is completed
   std::mutex mutex;
   std::unique_lock<std::mutex> lock(mutex);
 
-  m_cv.wait(lock, [&]{ return job.completed(); });
+  m_cv.wait(lock, [&]{ return task.completed(); });
 }
 
 //-----------------------------------------------------------------------------
 
-void bit::platform::dispatch_queue::post_job( job job )
+void bit::platform::dispatch_queue::post_task( task task )
 {
   if( !m_is_running )
     std::terminate();
 
-  m_queue->push( std::move(job) );
+  m_queue->push( std::move(task) );
 }
 
 //-----------------------------------------------------------------------------
@@ -99,13 +99,13 @@ void bit::platform::dispatch_queue::run()
 
     if( !m_is_running && m_queue->empty() ) break;
 
-    // wait until job is entered into queue
+    // wait until task is entered into queue
     {
       std::unique_lock<std::mutex> lock(m_mutex);
       m_cv.wait(lock, [&]{ return !m_queue->empty(); });
     }
 
-    auto j = get_job();
+    auto j = get_task();
 
     assert( j != nullptr );
 
@@ -114,7 +114,7 @@ void bit::platform::dispatch_queue::run()
   }
 }
 
-bit::platform::job bit::platform::dispatch_queue::get_job()
+bit::platform::task bit::platform::dispatch_queue::get_task()
 {
   return m_queue->steal();
 }
@@ -123,34 +123,34 @@ bit::platform::job bit::platform::dispatch_queue::get_job()
 // Free Functions
 //-----------------------------------------------------------------------------
 
-void bit::platform::post_job( dispatch_queue& queue, job job )
+void bit::platform::post_task( dispatch_queue& queue, task task )
 {
-  queue.post_job( std::move(job) );
+  queue.post_task( std::move(task) );
 }
 
-void bit::platform::wait( dispatch_queue& queue, job_handle job )
+void bit::platform::wait( dispatch_queue& queue, task_handle task )
 {
-  queue.wait( job );
+  queue.wait( task );
 }
 
 //-----------------------------------------------------------------------------
 // This Dispatch Queue : Free Functions
 //-----------------------------------------------------------------------------
 
-void bit::platform::this_dispatch_queue::post_job( job job )
+void bit::platform::this_dispatch_queue::post_task( task task )
 {
-  assert( g_this_queue != nullptr && "post_job can only be called in an active dispatch queue" );
+  assert( g_this_queue != nullptr && "post_task can only be called in an active dispatch queue" );
 
   auto& queue = *g_this_queue;
-  queue.post_job( std::move(job) );
+  queue.post_task( std::move(task) );
 }
 
-void bit::platform::this_dispatch_queue::wait( job_handle job )
+void bit::platform::this_dispatch_queue::wait( task_handle task )
 {
   assert( g_this_queue != nullptr && "wait can only be called in an active dispatch queue" );
 
   auto& queue = *g_this_queue;
-  queue.wait( job );
+  queue.wait( task );
 }
 
 //=============================================================================
@@ -159,9 +159,9 @@ void bit::platform::this_dispatch_queue::wait( job_handle job )
 
 namespace {
 
-//  bit::platform::detail::job_queue* get_job_queue()
+//  bit::platform::detail::task_queue* get_task_queue()
 //  {
-//    thread_local bit::platform::detail::job_queue s_queue;
+//    thread_local bit::platform::detail::task_queue s_queue;
 //
 //    return &s_queue;
 //  }

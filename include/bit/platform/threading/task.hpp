@@ -1,14 +1,14 @@
 
 /**
- * \file job.hpp
+ * \file task.hpp
  *
- * \brief This header contains the definition for a 'job' class used for
- *        job distribution and balancing in dispatch queues
+ * \brief This header contains the definition for a 'task' class used for
+ *        task distribution and balancing in dispatch queues
  *
  * \author Matthew Rodusek (matthew.rodusek@gmail.com)
  */
-#ifndef BIT_PLATFORM_THREADING_JOB_HPP
-#define BIT_PLATFORM_THREADING_JOB_HPP
+#ifndef BIT_PLATFORM_THREADING_TASK_HPP
+#define BIT_PLATFORM_THREADING_TASK_HPP
 
 #include <bit/stl/utilities/invoke.hpp> // stl::invoke
 
@@ -26,113 +26,113 @@
 namespace bit {
   namespace platform {
 
-    class job;
+    class task;
     namespace detail {
 
-      /// \brief Allocates a job
+      /// \brief Allocates a task
       ///
-      /// \return the pointer to the allocated job
-      void* allocate_job();
+      /// \return the pointer to the allocated task
+      void* allocate_task();
 
-      /// \brief Gets the active job for this thread
+      /// \brief Gets the active task for this thread
       ///
-      /// \return the currently active job
-      const job* get_active_job() noexcept;
+      /// \return the currently active task
+      const task* get_active_task() noexcept;
 
-      /// \brief Sets the currently active job for this thread
-      void set_active_job( const job* j ) noexcept;
+      /// \brief Sets the currently active task for this thread
+      void set_active_task( const task* j ) noexcept;
 
       template<typename T>
       std::decay_t<T> decay_copy( T&& v ) { return std::forward<T>(v); }
 
-      class job_storage;
+      class task_storage;
     } // namespace detail
 
     ///////////////////////////////////////////////////////////////////////////
-    /// \brief This class represents active jobs that are available for
+    /// \brief This class represents active tasks that are available for
     ///        execution.
     ///
-    /// Jobs are move-only data types that represent jobs that may be executed
+    /// Jobs are move-only data types that represent tasks that may be executed
     /// any number of times.
     ///////////////////////////////////////////////////////////////////////////
-    class job
+    class task
     {
       //---------------------------------------------------------------------
       // Public Static Members
       //---------------------------------------------------------------------
     public:
 
-      static constexpr auto max_jobs = 4096u;
+      static constexpr auto max_tasks = 4096u;
 
       //-----------------------------------------------------------------------
       // Constructors / Assignment / Destructor
       //-----------------------------------------------------------------------
     public:
 
-      /// \brief Default-constructs a null job
+      /// \brief Default-constructs a null task
       ///
       /// Calling \p execute() on a null
-      job() noexcept;
+      task() noexcept;
 
-      /// \brief Constructs a job from the given invocable \p fn and the
+      /// \brief Constructs a task from the given invocable \p fn and the
       ///        supplied \p args
       ///
       /// \param fn the function to invoke
       /// \param args the arguments to forward to the function
       template<typename Fn, typename...Args,
                typename=std::enable_if_t<stl::is_invocable<Fn,Args...>::value>,
-               typename=std::enable_if_t<!std::is_same<std::decay_t<Fn>,job>::value>>
-      explicit job( Fn&& fn, Args&&... args );
+               typename=std::enable_if_t<!std::is_same<std::decay_t<Fn>,task>::value>>
+      explicit task( Fn&& fn, Args&&... args );
 
-      /// \brief Constructs a job that is spawned as a sub-job of \p parent
+      /// \brief Constructs a task that is spawned as a sub-task of \p parent
       ///
-      /// \param parent the parent job
+      /// \param parent the parent task
       /// \param fn the function to invoke
       /// \param args the arguments to forward to the function
       template<typename Fn, typename...Args,
                typename=std::enable_if_t<stl::is_invocable<Fn,Args...>::value>>
-      explicit job( const job& parent, Fn&& fn, Args&&...args );
+      explicit task( const task& parent, Fn&& fn, Args&&...args );
 
-      /// \brief Move-constructs this job from an existing job
+      /// \brief Move-constructs this task from an existing task
       ///
-      /// \param other the other job to move from
-      job( job&& other ) noexcept;
+      /// \param other the other task to move from
+      task( task&& other ) noexcept;
 
       // Deleted copy constructor
-      job( const job& other ) = delete;
+      task( const task& other ) = delete;
 
       //-----------------------------------------------------------------------
 
-      /// \brief Destructs the stored job data
-      ~job();
+      /// \brief Destructs the stored task data
+      ~task();
 
       //-----------------------------------------------------------------------
 
-      /// \brief Move-assigns this job from an existing job
+      /// \brief Move-assigns this task from an existing task
       ///
-      /// \param other the job to move
+      /// \param other the task to move
       /// \return reference to \c (*this)
-      job& operator=( job&& other );
+      task& operator=( task&& other );
 
       // Deleted copy assignment
-      job& operator=( const job& other ) = delete;
+      task& operator=( const task& other ) = delete;
 
       //-----------------------------------------------------------------------
       // Observers
       //-----------------------------------------------------------------------
     public:
 
-      /// \brief Returns whether this job has completed
+      /// \brief Returns whether this task has completed
       ///
-      /// \return \c true if the job has completed
+      /// \return \c true if the task has completed
       bool completed() const noexcept;
 
-      /// \brief Returns whether this job is available for execution
+      /// \brief Returns whether this task is available for execution
       ///
-      /// A job is considered available only if all the child tasks have
+      /// A task is considered available only if all the child tasks have
       /// finished executing first
       ///
-      /// \return \c true if this job is available to be executed
+      /// \return \c true if this task is available to be executed
       bool available() const noexcept;
 
       //-----------------------------------------------------------------------
@@ -140,7 +140,7 @@ namespace bit {
       //-----------------------------------------------------------------------
     public:
 
-      /// \brief Executes this job using the stored arguments
+      /// \brief Executes this task using the stored arguments
       void execute() const;
 
       //-----------------------------------------------------------------------
@@ -148,7 +148,7 @@ namespace bit {
       //-----------------------------------------------------------------------
     public:
 
-      /// \brief Returns a bool indicating whether this job has a value
+      /// \brief Returns a bool indicating whether this task has a value
       explicit operator bool() const noexcept;
 
       //-----------------------------------------------------------------------
@@ -156,98 +156,98 @@ namespace bit {
       //-----------------------------------------------------------------------
     private:
 
-      detail::job_storage* m_job;
+      detail::task_storage* m_task;
 
-      friend bool operator==( const job&, const job& ) noexcept;
+      friend bool operator==( const task&, const task& ) noexcept;
 
-      friend class job_handle;
+      friend class task_handle;
     };
 
     //-------------------------------------------------------------------------
     // Equality
     //-------------------------------------------------------------------------
 
-    bool operator==( const job& lhs, std::nullptr_t ) noexcept;
-    bool operator==( std::nullptr_t, const job& rhs ) noexcept;
-    bool operator==( const job& lhs, const job& rhs ) noexcept;
+    bool operator==( const task& lhs, std::nullptr_t ) noexcept;
+    bool operator==( std::nullptr_t, const task& rhs ) noexcept;
+    bool operator==( const task& lhs, const task& rhs ) noexcept;
 
     //-------------------------------------------------------------------------
 
-    bool operator!=( const job& lhs, std::nullptr_t ) noexcept;
-    bool operator!=( std::nullptr_t, const job& rhs ) noexcept;
-    bool operator!=( const job& lhs, const job& rhs ) noexcept;
+    bool operator!=( const task& lhs, std::nullptr_t ) noexcept;
+    bool operator!=( std::nullptr_t, const task& rhs ) noexcept;
+    bool operator!=( const task& lhs, const task& rhs ) noexcept;
 
     //-------------------------------------------------------------------------
     // Utilities
     //-------------------------------------------------------------------------
 
-    /// \brief Gets the currently active job, if a job is being processed.
+    /// \brief Gets the currently active task, if a task is being processed.
     ///        Otherwise this returns \c nullptr
     ///
-    /// \return the active job, or nullptr
-    const job* this_job() noexcept;
+    /// \return the active task, or nullptr
+    const task* this_task() noexcept;
 
     //-------------------------------------------------------------------------
 
     /// \{
-    /// \brief Makes a new job that invokes \p fn with \p args
+    /// \brief Makes a new task that invokes \p fn with \p args
     ///
-    /// \param parent the parent of this job
+    /// \param parent the parent of this task
     /// \param fn the function to invoke
     /// \param args the arguments to forward to \p fn
-    /// \return the created job
+    /// \return the created task
     template<typename Fn, typename...Args>
-    job make_job( Fn&& fn, Args&&...args );
+    task make_task( Fn&& fn, Args&&...args );
     template<typename Fn, typename...Args>
-    job make_job( const job& parent, Fn&& fn, Args&&...args );
+    task make_task( const task& parent, Fn&& fn, Args&&...args );
     template<typename Fn, typename...Args>
-    job make_job( std::nullptr_t, Fn&&, Args&&... ) = delete;
+    task make_task( std::nullptr_t, Fn&&, Args&&... ) = delete;
     /// \}
 
     ///////////////////////////////////////////////////////////////////////////
-    /// \brief A non-owning handle that refers to a given \ref job
+    /// \brief A non-owning handle that refers to a given \ref task
     ///
-    /// A job_handle can be used to wait on a job that has already been posted
+    /// A task_handle can be used to wait on a task that has already been posted
     /// to a given dispatching mechanism, or it can be used
     ///
     ///////////////////////////////////////////////////////////////////////////
-    class job_handle
+    class task_handle
     {
       //-----------------------------------------------------------------------
       // Constructors / Assignment
       //-----------------------------------------------------------------------
     public:
 
-      job_handle() noexcept;
+      task_handle() noexcept;
 
-      job_handle( const job& job ) noexcept;
+      task_handle( const task& task ) noexcept;
 
-      job_handle( const job_handle& other ) noexcept = default;
+      task_handle( const task_handle& other ) noexcept = default;
 
-      job_handle( job_handle&& other ) noexcept = default;
+      task_handle( task_handle&& other ) noexcept = default;
 
       //-----------------------------------------------------------------------
 
-      job_handle& operator=( const job_handle& other ) noexcept = default;
+      task_handle& operator=( const task_handle& other ) noexcept = default;
 
-      job_handle& operator=( job_handle&& other ) noexcept = default;
+      task_handle& operator=( task_handle&& other ) noexcept = default;
 
       //-----------------------------------------------------------------------
       // Observers
       //-----------------------------------------------------------------------
     public:
 
-      /// \brief Returns whether this job has completed
+      /// \brief Returns whether this task has completed
       ///
-      /// \return \c true if the job has completed
+      /// \return \c true if the task has completed
       bool completed() const noexcept;
 
-      /// \brief Returns whether this job is available for execution
+      /// \brief Returns whether this task is available for execution
       ///
-      /// A job is considered available only if all the child tasks have
+      /// A task is considered available only if all the child tasks have
       /// finished executing first
       ///
-      /// \return \c true if this job is available to be executed
+      /// \return \c true if this task is available to be executed
       bool available() const noexcept;
 
       //-----------------------------------------------------------------------
@@ -255,11 +255,11 @@ namespace bit {
       //-----------------------------------------------------------------------
     private:
 
-      detail::job_storage* m_job;
+      detail::task_storage* m_task;
     };
   } // namespace platform
 } // namespace bit
 
-#include "detail/job.inl"
+#include "detail/task.inl"
 
-#endif /* BIT_PLATFORM_THREADING_JOB_HPP */
+#endif /* BIT_PLATFORM_THREADING_TASK_HPP */

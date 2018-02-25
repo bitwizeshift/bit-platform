@@ -61,7 +61,7 @@ set(headers
   include/bit/platform/threading/concurrent_queue.hpp
   include/bit/platform/threading/dispatcher.hpp
   include/bit/platform/threading/dispatch_queue.hpp
-  include/bit/platform/threading/job.hpp
+  include/bit/platform/threading/task.hpp
   include/bit/platform/threading/null_mutex.hpp
   include/bit/platform/threading/semaphore.hpp
   include/bit/platform/threading/shared_mutex.hpp
@@ -120,7 +120,7 @@ set(source_files
   # threading
   src/bit/platform/threading/dispatch_queue.cpp
   src/bit/platform/threading/dispatcher.cpp
-  src/bit/platform/threading/job.cpp
+  src/bit/platform/threading/task.cpp
   src/bit/platform/threading/spin_lock.cpp
 
   # filesystem

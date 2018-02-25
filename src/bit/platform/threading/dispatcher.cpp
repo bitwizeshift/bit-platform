@@ -7,7 +7,7 @@
 
 #include <cassert> // assert
 
-#include "detail/job_queue.hpp" // detail::job_queue
+#include "detail/task_queue.hpp" // detail::task_queue
 
 //============================================================================
 // Anonymous Namespaces
@@ -27,10 +27,10 @@ namespace {
   std::ptrdiff_t generate_number_in_range( std::ptrdiff_t low,
                                            std::ptrdiff_t high );
 
-  /// \brief Gets the address of this thread's active job queue
+  /// \brief Gets the address of this thread's active task queue
   ///
-  /// \return pointer to the job queue
-  bit::platform::detail::job_queue* get_job_queue();
+  /// \return pointer to the task queue
+  bit::platform::detail::task_queue* get_task_queue();
 
   //--------------------------------------------------------------------------
   // Globals
@@ -47,7 +47,7 @@ std::ptrdiff_t bit::platform::worker_thread_id()
 }
 
 //============================================================================
-// job_dispatcher
+// task_dispatcher
 //============================================================================
 
 //----------------------------------------------------------------------------
@@ -100,7 +100,7 @@ bit::platform::dispatcher::~dispatcher()
 
 void bit::platform::dispatcher::stop()
 {
-  assert( m_owner == std::this_thread::get_id() && "job_dispatcher can only be stopped on the creating thread");
+  assert( m_owner == std::this_thread::get_id() && "task_dispatcher can only be stopped on the creating thread");
 
   if(!m_running) return;
   m_running = false;
@@ -113,21 +113,21 @@ void bit::platform::dispatcher::stop()
 
 //----------------------------------------------------------------------------
 
-void bit::platform::dispatcher::wait( job_handle job )
+void bit::platform::dispatcher::wait( task_handle task )
 {
-  help_while([&]{ return !job.completed(); });
+  help_while([&]{ return !task.completed(); });
 }
 
-void bit::platform::dispatcher::post_job( job job )
+void bit::platform::dispatcher::post_task( task task )
 {
-  push_job( std::move(job) );
+  push_task( std::move(task) );
 }
 
 //----------------------------------------------------------------------------
 // Private Capacity
 //----------------------------------------------------------------------------
 
-bool bit::platform::dispatcher::has_remaining_jobs()
+bool bit::platform::dispatcher::has_remaining_tasks()
   const noexcept
 {
   for( auto& queue : m_queues ) {
@@ -149,15 +149,15 @@ void bit::platform::dispatcher::start()
     g_this_dispatcher = this;
   }
 
-  assert( m_owner == std::this_thread::get_id() && "job_dispatcher can only be started on the creating thread");
+  assert( m_owner == std::this_thread::get_id() && "task_dispatcher can only be started on the creating thread");
 
   if( m_running ) return;
 
   m_running = true;
 
-  // Populate n+1 job queues
+  // Populate n+1 task queues
   for( auto& queue : m_queues ) {
-    queue = get_job_queue();
+    queue = get_task_queue();
   }
 
   // Makes n working threads
@@ -196,7 +196,7 @@ std::thread bit::platform::dispatcher::make_worker_thread( std::ptrdiff_t index 
 
 //----------------------------------------------------------------------------
 
-bit::platform::job bit::platform::dispatcher::get_job()
+bit::platform::task bit::platform::dispatcher::get_task()
 {
   auto& queue = *m_queues[g_thread_index];
 
@@ -211,25 +211,25 @@ bit::platform::job bit::platform::dispatcher::get_job()
   // If the two queues are the same, yield processor time
   if( &queue == &steal_queue ) {
     std::this_thread::yield();
-    return job{};
+    return task{};
   }
 
-  // Attempt to steal a job
+  // Attempt to steal a task
   j = steal_queue.steal();
 
-  // If job is not stolen, yield processor time
+  // If task is not stolen, yield processor time
   if( !j ) {
     std::this_thread::yield();
-    return job{};
+    return task{};
   }
 
   return j;
 }
 
-void bit::platform::dispatcher::push_job( job job )
+void bit::platform::dispatcher::push_task( task task )
 {
   if( !m_running ) std::terminate();
-  m_queues[g_thread_index]->push( std::move(job) );
+  m_queues[g_thread_index]->push( std::move(task) );
   m_cv.notify_all();
 }
 
@@ -237,7 +237,7 @@ template<typename Condition>
 void bit::platform::dispatcher::help_while( Condition&& condition )
 {
   while( std::forward<Condition>(condition)() ) {
-    auto j = get_job();
+    auto j = get_task();
 
     if( j ) {
       help_while_unavailable( j );
@@ -247,7 +247,7 @@ void bit::platform::dispatcher::help_while( Condition&& condition )
   }
 }
 
-void bit::platform::dispatcher::help_while_unavailable( const job& j )
+void bit::platform::dispatcher::help_while_unavailable( const task& j )
 {
   help_while( [&]{ return !j.available(); } );
 }
@@ -265,34 +265,34 @@ void bit::platform::dispatcher::do_work()
 // Free Functions
 //----------------------------------------------------------------------------
 
-void bit::platform::post_job( dispatcher& dispatcher, job job )
+void bit::platform::post_task( dispatcher& dispatcher, task task )
 {
-  dispatcher.post_job( std::move(job) );
+  dispatcher.post_task( std::move(task) );
 }
 
-void bit::platform::wait( dispatcher& dispatcher, job_handle job )
+void bit::platform::wait( dispatcher& dispatcher, task_handle task )
 {
-  dispatcher.wait(job);
+  dispatcher.wait(task);
 }
 
 //----------------------------------------------------------------------------
 // This Dispatcher : Free Functions
 //----------------------------------------------------------------------------
 
-void bit::platform::this_dispatcher::post_job( job job )
+void bit::platform::this_dispatcher::post_task( task task )
 {
-  assert( g_this_dispatcher && "post_job can only be called in a dispatcher's job queue" );
+  assert( g_this_dispatcher && "post_task can only be called in a dispatcher's task queue" );
 
   auto& dispatcher = *g_this_dispatcher;
-  dispatcher.post_job( std::move(job) );
+  dispatcher.post_task( std::move(task) );
 }
 
-void bit::platform::this_dispatcher::wait( job_handle job )
+void bit::platform::this_dispatcher::wait( task_handle task )
 {
-  assert( g_this_dispatcher && "wait can only be called in a dispatcher's job queue" );
+  assert( g_this_dispatcher && "wait can only be called in a dispatcher's task queue" );
 
   auto& dispatcher = *g_this_dispatcher;
-  dispatcher.wait( job );
+  dispatcher.wait( task );
 }
 
 
@@ -310,13 +310,13 @@ namespace {
 
   //--------------------------------------------------------------------------
 
-  bit::platform::detail::job_queue* get_job_queue()
+  bit::platform::detail::task_queue* get_task_queue()
   {
     // TODO: unique_ptr is a temporary hack, since glibc doesn't support thread_local
-    //       job_queue with nontrivial destructor
-    static auto s_queues = std::vector<std::unique_ptr<bit::platform::detail::job_queue>>();
+    //       task_queue with nontrivial destructor
+    static auto s_queues = std::vector<std::unique_ptr<bit::platform::detail::task_queue>>();
 
-    s_queues.push_back( std::make_unique<bit::platform::detail::job_queue>() );
+    s_queues.push_back( std::make_unique<bit::platform::detail::task_queue>() );
 
     return s_queues.back().get();
   }

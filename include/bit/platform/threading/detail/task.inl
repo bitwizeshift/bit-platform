@@ -1,33 +1,33 @@
-#ifndef BIT_PLATFORM_THREADING_DETAIL_JOB_INL
-#define BIT_PLATFORM_THREADING_DETAIL_JOB_INL
+#ifndef BIT_PLATFORM_THREADING_DETAIL_TASK_INL
+#define BIT_PLATFORM_THREADING_DETAIL_TASK_INL
 
 namespace bit { namespace platform { namespace detail {
 
 ///////////////////////////////////////////////////////////////////////////////
-/// \brief A job is the unit of dispatch used in the job_system
+/// \brief A task is the unit of dispatch used in the task_system
 ///
-/// \note A job may only ever be executed exactly once; executing a job
+/// \note A task may only ever be executed exactly once; executing a task
 ///       more than once is undefined behaviour. This is best left up to
-///       the dispatcher system for the job.
+///       the dispatcher system for the task.
 ///////////////////////////////////////////////////////////////////////////////
-class alignas(cache_line_size()) job_storage
+class alignas(cache_line_size()) task_storage
 {
   //---------------------------------------------------------------------------
   // Observers
   //---------------------------------------------------------------------------
 public:
 
-  /// \brief Returns whether this job has completed
+  /// \brief Returns whether this task has completed
   ///
-  /// \return \c true if the job has completed
+  /// \return \c true if the task has completed
   bool completed() const noexcept;
 
-  /// \brief Returns whether this job is available for execution
+  /// \brief Returns whether this task is available for execution
   ///
-  /// A job is considered available only if all the child tasks have
+  /// A task is considered available only if all the child tasks have
   /// finished executing first
   ///
-  /// \return \c true if this job is available to be executed
+  /// \return \c true if this task is available to be executed
   bool available() const noexcept;
 
   //---------------------------------------------------------------------------
@@ -35,19 +35,19 @@ public:
   //---------------------------------------------------------------------------
 public:
 
-  /// \brief Returns the parent of this job, if any
+  /// \brief Returns the parent of this task, if any
   ///
-  /// \note This returns nullptr for jobs with no parent
+  /// \note This returns nullptr for tasks with no parent
   ///
-  /// \return the parent of the job
-  job_storage* parent() const noexcept;
+  /// \return the parent of the task
+  task_storage* parent() const noexcept;
 
   //---------------------------------------------------------------------------
   // Execution
   //---------------------------------------------------------------------------
 public:
 
-  /// \brief Detaches the current active job to run indefinitely in the
+  /// \brief Detaches the current active task to run indefinitely in the
   ///        background
   void execute() const;
 
@@ -56,11 +56,11 @@ public:
   //---------------------------------------------------------------------------
 public:
 
-  /// \brief Finalizes this job
+  /// \brief Finalizes this task
   ///
-  /// \note This function must only be called once per job, otherwise it is
+  /// \note This function must only be called once per task, otherwise it is
   ///       undefined behaviour. This destructs any stored arguments to the
-  ///       job, and signals to any parent-jobs that this sub-job is no
+  ///       task, and signals to any parent-tasks that this sub-task is no
   ///       longer valid
   void finalize();
 
@@ -69,35 +69,35 @@ public:
   //---------------------------------------------------------------------------
 private:
 
-  /// \brief Default-constructs this job
-  job_storage();
+  /// \brief Default-constructs this task
+  task_storage();
 
   // Deleted move construction
-  job_storage( job_storage&& other ) = delete;
+  task_storage( task_storage&& other ) = delete;
 
   // Deleted copy construction
-  job_storage( const job_storage& other ) = delete;
+  task_storage( const task_storage& other ) = delete;
 
   //---------------------------------------------------------------------------
 
   // Deleted move assignment
-  job_storage& operator=( job_storage&& other ) = delete;
+  task_storage& operator=( task_storage&& other ) = delete;
 
   // Deleted copy assignment
-  job_storage& operator=( const job_storage& other ) = delete;
+  task_storage& operator=( const task_storage& other ) = delete;
 
-  /// \brief Constructs a job from a given \p function to invoke
+  /// \brief Constructs a task from a given \p function to invoke
   ///
   /// \param fn the function to invoke
   /// \param
   template<typename Fn, typename...Args>
-  explicit job_storage( Fn&& fn, Args&&...args );
+  explicit task_storage( Fn&& fn, Args&&...args );
 
-  /// \brief Constructs a job from a given \p function to invoke
+  /// \brief Constructs a task from a given \p function to invoke
   ///
   /// \param fn the function to invoke
   template<typename Fn, typename...Args>
-  explicit job_storage( job_storage* parent, Fn&& fn, Args&&...args );
+  explicit task_storage( task_storage* parent, Fn&& fn, Args&&...args );
 
   //---------------------------------------------------------------------------
   // Private Modifiers
@@ -117,7 +117,7 @@ private:
 
   /////////////////////////////////////////////////////////////////////////////
   /// \brief An underlying storage type that converts the unused padding
-  ///        of this job into a tuple of arguments
+  ///        of this task into a tuple of arguments
   /////////////////////////////////////////////////////////////////////////////
   class storage_type
   {
@@ -172,7 +172,7 @@ private:
 private:
 
   static constexpr std::size_t padding_size = cache_line_size()
-                                            - sizeof(job_storage*)
+                                            - sizeof(task_storage*)
                                             - 2*sizeof(function_type)
                                             - sizeof(atomic_type);
 
@@ -184,7 +184,7 @@ private:
   //---------------------------------------------------------------------------
 private:
 
-  job_storage*  m_parent;
+  task_storage*  m_parent;
   function_type m_function;
   function_type m_destructor;
   atomic_type   m_unfinished;
@@ -195,7 +195,7 @@ private:
   //---------------------------------------------------------------------------
 private:
 
-  /// \brief The function being wrapped in the job object
+  /// \brief The function being wrapped in the task object
   ///
   /// \param padding pointer to the padding to convert to arguments
   template<typename...Types>
@@ -210,7 +210,7 @@ private:
 
   //---------------------------------------------------------------------------
 
-  /// \brief The function to call the destructor for the job
+  /// \brief The function to call the destructor for the task
   ///
   /// \param padding pointer to the padding to convert to arguments
   template<typename...Types>
@@ -239,30 +239,30 @@ private:
 private:
 
   template<typename Fn, typename...Args>
-  friend job bit::platform::make_job( Fn&&, Args&&... );
+  friend task bit::platform::make_task( Fn&&, Args&&... );
 
   template<typename Fn, typename...Args>
-  friend job bit::platform::make_job( const job&, Fn&&, Args&&... );
+  friend task bit::platform::make_task( const task&, Fn&&, Args&&... );
 
-  friend void* allocate_job();
+  friend void* allocate_task();
 };
 
 } } } // namespace bit::platform::detail
 
-// the job class must be trivially destructible, since this is the primary
-// storage used for allocating thread-safe jobs, and destructors are never
+// the task class must be trivially destructible, since this is the primary
+// storage used for allocating thread-safe tasks, and destructors are never
 // called before reconstructions.
-static_assert( std::is_trivially_destructible<bit::platform::detail::job_storage>::value, "job_storage must be trivially destructible!");
+static_assert( std::is_trivially_destructible<bit::platform::detail::task_storage>::value, "task_storage must be trivially destructible!");
 
 //=============================================================================
-// job_storage
+// task_storage
 //=============================================================================
 
 //-----------------------------------------------------------------------------
 // Private Constructors
 //-----------------------------------------------------------------------------
 
-inline bit::platform::detail::job_storage::job_storage()
+inline bit::platform::detail::task_storage::task_storage()
   : m_parent(nullptr),
     m_function(nullptr),
     m_destructor(nullptr),
@@ -272,7 +272,7 @@ inline bit::platform::detail::job_storage::job_storage()
 }
 
 template<typename Fn, typename...Args>
-bit::platform::detail::job_storage::job_storage( Fn&& fn, Args&&...args )
+bit::platform::detail::task_storage::task_storage( Fn&& fn, Args&&...args )
 : m_parent(nullptr),
   m_function(&function<std::decay_t<Fn>,std::decay_t<Args>...>),
   m_destructor(&destruct_function<std::decay_t<Fn>,std::decay_t<Args>...>),
@@ -284,7 +284,7 @@ bit::platform::detail::job_storage::job_storage( Fn&& fn, Args&&...args )
 //-----------------------------------------------------------------------------
 
 template<typename Fn, typename...Args>
-bit::platform::detail::job_storage::job_storage( job_storage* parent, Fn&& fn, Args&&...args )
+bit::platform::detail::task_storage::task_storage( task_storage* parent, Fn&& fn, Args&&...args )
   : m_parent(parent),
     m_function(&function<std::decay_t<Fn>,std::decay_t<Args>...>),
     m_destructor(&destruct_function<std::decay_t<Fn>,std::decay_t<Args>...>),
@@ -299,13 +299,13 @@ bit::platform::detail::job_storage::job_storage( job_storage* parent, Fn&& fn, A
 // Observers
 //-----------------------------------------------------------------------------
 
-inline bool bit::platform::detail::job_storage::completed()
+inline bool bit::platform::detail::task_storage::completed()
   const noexcept
 {
   return m_unfinished == 0;
 }
 
-inline bool bit::platform::detail::job_storage::available()
+inline bool bit::platform::detail::task_storage::available()
   const noexcept
 {
   return m_unfinished == 1;
@@ -315,7 +315,7 @@ inline bool bit::platform::detail::job_storage::available()
 // Element Access
 //-----------------------------------------------------------------------------
 
-inline bit::platform::detail::job_storage* bit::platform::detail::job_storage::parent()
+inline bit::platform::detail::task_storage* bit::platform::detail::task_storage::parent()
   const noexcept
 {
   return m_parent;
@@ -325,7 +325,7 @@ inline bit::platform::detail::job_storage* bit::platform::detail::job_storage::p
 // Execution
 //-----------------------------------------------------------------------------
 
-inline void bit::platform::detail::job_storage::execute() const
+inline void bit::platform::detail::task_storage::execute() const
 {
   (*m_function)( static_cast<void*>(&m_padding[0]) );
 }
@@ -334,7 +334,7 @@ inline void bit::platform::detail::job_storage::execute() const
 // Modifiers
 //-----------------------------------------------------------------------------
 
-inline void bit::platform::detail::job_storage::finalize()
+inline void bit::platform::detail::task_storage::finalize()
 {
   (*m_destructor)( static_cast<void*>(&m_padding[0]) );
   auto unfinished = --m_unfinished;
@@ -348,7 +348,7 @@ inline void bit::platform::detail::job_storage::finalize()
 //-----------------------------------------------------------------------------
 
 template<typename...Args>
-void bit::platform::detail::job_storage::store_arguments( Args&&...args )
+void bit::platform::detail::task_storage::store_arguments( Args&&...args )
 {
   using tuple_type = std::tuple<std::decay_t<Args>...>;
 
@@ -373,7 +373,7 @@ void bit::platform::detail::job_storage::store_arguments( Args&&...args )
 }
 
 template<typename...Types>
-void bit::platform::detail::job_storage::function( void* padding )
+void bit::platform::detail::task_storage::function( void* padding )
 {
   using tuple_type = std::tuple<std::decay_t<Types>...>;
 
@@ -399,7 +399,7 @@ void bit::platform::detail::job_storage::function( void* padding )
 }
 
 template<typename Tuple, std::size_t...Idxs>
-void bit::platform::detail::job_storage::function_inner( Tuple&& tuple, std::index_sequence<Idxs...> )
+void bit::platform::detail::task_storage::function_inner( Tuple&& tuple, std::index_sequence<Idxs...> )
 {
   stl::invoke( std::get<Idxs>( std::forward<Tuple>(tuple) )... );
 }
@@ -407,7 +407,7 @@ void bit::platform::detail::job_storage::function_inner( Tuple&& tuple, std::ind
 //-----------------------------------------------------------------------------
 
 template<typename...Types>
-void bit::platform::detail::job_storage::destruct_function( void* padding )
+void bit::platform::detail::task_storage::destruct_function( void* padding )
 {
   using tuple_type = std::tuple<std::decay_t<Types>...>;
 
@@ -435,34 +435,34 @@ void bit::platform::detail::job_storage::destruct_function( void* padding )
 //-----------------------------------------------------------------------------
 
 template<typename...Types>
-void bit::platform::detail::job_storage::destruct_args( storage_type&,
+void bit::platform::detail::task_storage::destruct_args( storage_type&,
                                                       std::true_type )
 {
   // trivially destructible
 }
 
 template<typename...Types>
-void bit::platform::detail::job_storage::destruct_args( storage_type& storage,
+void bit::platform::detail::task_storage::destruct_args( storage_type& storage,
                                                       std::false_type )
 {
   destroy( storage.get<Types...>() );
 }
 
 template<typename T>
-void bit::platform::detail::job_storage::destroy( T& t )
+void bit::platform::detail::task_storage::destroy( T& t )
 {
   t.~T();
 }
 
 //=============================================================================
-// job::storage_type
+// task::storage_type
 //=============================================================================
 
 //-----------------------------------------------------------------------------
 // Constructor
 //-----------------------------------------------------------------------------
 
-inline bit::platform::detail::job_storage::storage_type::storage_type( void* ptr )
+inline bit::platform::detail::task_storage::storage_type::storage_type( void* ptr )
   : m_ptr(ptr)
 {
 
@@ -473,7 +473,7 @@ inline bit::platform::detail::job_storage::storage_type::storage_type( void* ptr
 //-----------------------------------------------------------------------------
 
 template<typename...Ts, typename...Args>
-inline void bit::platform::detail::job_storage::storage_type::set( Args&&...args )
+inline void bit::platform::detail::task_storage::storage_type::set( Args&&...args )
 {
   new (m_ptr) std::tuple<Ts...>( detail::decay_copy(std::forward<Args>(args))... );
 }
@@ -483,7 +483,7 @@ inline void bit::platform::detail::job_storage::storage_type::set( Args&&...args
 //-----------------------------------------------------------------------------
 
 template<typename...Ts>
-inline std::tuple<Ts...>& bit::platform::detail::job_storage::storage_type::get()
+inline std::tuple<Ts...>& bit::platform::detail::task_storage::storage_type::get()
   const
 {
   return *static_cast<std::tuple<Ts...>*>( m_ptr );
@@ -491,62 +491,62 @@ inline std::tuple<Ts...>& bit::platform::detail::job_storage::storage_type::get(
 
 
 //=============================================================================
-// job
+// task
 //=============================================================================
 
 //-----------------------------------------------------------------------------
 // Constructors / Assignment / Destructor
 //-----------------------------------------------------------------------------
 
-inline bit::platform::job::job()
+inline bit::platform::task::task()
   noexcept
-  : m_job(nullptr)
+  : m_task(nullptr)
 {
 
 }
 
 template<typename Fn, typename...Args, typename, typename>
-inline bit::platform::job::job( Fn&& fn, Args&&...args )
-  : m_job(static_cast<detail::job_storage*>(detail::allocate_job()))
+inline bit::platform::task::task( Fn&& fn, Args&&...args )
+  : m_task(static_cast<detail::task_storage*>(detail::allocate_task()))
 {
-  new (m_job) detail::job_storage( std::forward<Fn>(fn),
+  new (m_task) detail::task_storage( std::forward<Fn>(fn),
                                    std::forward<Args>(args)... );
 }
 
 
 template<typename Fn, typename...Args, typename>
-inline bit::platform::job::job( const job& parent, Fn&& fn, Args&&...args )
-  : m_job(static_cast<detail::job_storage*>(detail::allocate_job()))
+inline bit::platform::task::task( const task& parent, Fn&& fn, Args&&...args )
+  : m_task(static_cast<detail::task_storage*>(detail::allocate_task()))
 {
-  new (m_job) detail::job_storage( parent.m_job,
+  new (m_task) detail::task_storage( parent.m_task,
                                    std::forward<Fn>(fn),
                                    std::forward<Args>(args)... );
 }
 
-inline bit::platform::job::job( job&& other )
+inline bit::platform::task::task( task&& other )
   noexcept
-  : m_job(other.m_job)
+  : m_task(other.m_task)
 {
-  other.m_job = nullptr;
+  other.m_task = nullptr;
 }
 
 
 //-----------------------------------------------------------------------------
 
-inline bit::platform::job::~job()
+inline bit::platform::task::~task()
 {
-  // Only finalize if job is not null
-  if( m_job ) m_job->finalize();
+  // Only finalize if task is not null
+  if( m_task ) m_task->finalize();
 }
 
 //-----------------------------------------------------------------------------
 
-inline bit::platform::job& bit::platform::job::operator=( job&& other )
+inline bit::platform::task& bit::platform::task::operator=( task&& other )
 {
-  if( m_job ) m_job->finalize();
+  if( m_task ) m_task->finalize();
 
-  m_job = other.m_job;
-  other.m_job = nullptr;
+  m_task = other.m_task;
+  other.m_task = nullptr;
 
   return (*this);
 }
@@ -556,39 +556,39 @@ inline bit::platform::job& bit::platform::job::operator=( job&& other )
 // Observers
 //-----------------------------------------------------------------------------
 
-inline bool bit::platform::job::completed()
+inline bool bit::platform::task::completed()
   const noexcept
 {
-  return m_job->completed();
+  return m_task->completed();
 }
 
-inline bool bit::platform::job::available()
+inline bool bit::platform::task::available()
   const noexcept
 {
-  return m_job->available();
+  return m_task->available();
 }
 
 //-----------------------------------------------------------------------------
 // Execution
 //-----------------------------------------------------------------------------
 
-inline void bit::platform::job::execute() const
+inline void bit::platform::task::execute() const
 {
-  assert( m_job && "execute can only be called on non-null jobs" );
+  assert( m_task && "execute can only be called on non-null tasks" );
 
-  auto old = detail::get_active_job();
-  detail::set_active_job(this);
-  m_job->execute();
-  detail::set_active_job(old);
+  auto old = detail::get_active_task();
+  detail::set_active_task(this);
+  m_task->execute();
+  detail::set_active_task(old);
 }
 
 //-----------------------------------------------------------------------------
 // Conversions
 //-----------------------------------------------------------------------------
 
-inline bit::platform::job::operator bool() const noexcept
+inline bit::platform::task::operator bool() const noexcept
 {
-  return m_job != nullptr;
+  return m_task != nullptr;
 }
 
 //=============================================================================
@@ -599,39 +599,39 @@ inline bit::platform::job::operator bool() const noexcept
 // Equality
 //-----------------------------------------------------------------------------
 
-inline bool bit::platform::operator==( const job& lhs, std::nullptr_t )
+inline bool bit::platform::operator==( const task& lhs, std::nullptr_t )
   noexcept
 {
   return !static_cast<bool>(lhs);
 }
 
-inline bool bit::platform::operator==( std::nullptr_t, const job& rhs )
+inline bool bit::platform::operator==( std::nullptr_t, const task& rhs )
   noexcept
 {
   return !static_cast<bool>(rhs);
 }
 
-inline bool bit::platform::operator==( const job& lhs, const job& rhs )
+inline bool bit::platform::operator==( const task& lhs, const task& rhs )
   noexcept
 {
-  return lhs.m_job == rhs.m_job;
+  return lhs.m_task == rhs.m_task;
 }
 
 //-----------------------------------------------------------------------------
 
-inline bool bit::platform::operator!=( const job& lhs, std::nullptr_t )
+inline bool bit::platform::operator!=( const task& lhs, std::nullptr_t )
   noexcept
 {
   return !(lhs == nullptr);
 }
 
-inline bool bit::platform::operator!=( std::nullptr_t, const job& rhs )
+inline bool bit::platform::operator!=( std::nullptr_t, const task& rhs )
   noexcept
 {
   return !(nullptr == rhs);
 }
 
-inline bool bit::platform::operator!=( const job& lhs, const job& rhs )
+inline bool bit::platform::operator!=( const task& lhs, const task& rhs )
   noexcept
 {
   return !(lhs==rhs);
@@ -642,38 +642,38 @@ inline bool bit::platform::operator!=( const job& lhs, const job& rhs )
 //-----------------------------------------------------------------------------
 
 template<typename Fn, typename...Args>
-inline bit::platform::job
-  bit::platform::make_job( Fn&& fn, Args&&...args )
+inline bit::platform::task
+  bit::platform::make_task( Fn&& fn, Args&&...args )
 {
-  return job{ std::forward<Fn>(fn), std::forward<Args>(args)... };
+  return task{ std::forward<Fn>(fn), std::forward<Args>(args)... };
 }
 
 
 template<typename Fn, typename...Args>
-inline bit::platform::job
-  bit::platform::make_job( const job& parent, Fn&& fn, Args&&...args )
+inline bit::platform::task
+  bit::platform::make_task( const task& parent, Fn&& fn, Args&&...args )
 {
-  return job{ parent, std::forward<Fn>(fn), std::forward<Args>(args)... };
+  return task{ parent, std::forward<Fn>(fn), std::forward<Args>(args)... };
 }
 
 //=============================================================================
-// job_handle
+// task_handle
 //=============================================================================
 
 //-----------------------------------------------------------------------------
 // Constructors / Assignment
 //-----------------------------------------------------------------------------
 
-inline bit::platform::job_handle::job_handle()
+inline bit::platform::task_handle::task_handle()
   noexcept
-  : m_job(nullptr)
+  : m_task(nullptr)
 {
 
 }
 
-inline bit::platform::job_handle::job_handle( const job& job )
+inline bit::platform::task_handle::task_handle( const task& task )
   noexcept
-  : m_job(job.m_job)
+  : m_task(task.m_task)
 {
 
 }
@@ -682,16 +682,16 @@ inline bit::platform::job_handle::job_handle( const job& job )
 // Observers
 //-----------------------------------------------------------------------------
 
-inline bool bit::platform::job_handle::completed()
+inline bool bit::platform::task_handle::completed()
   const noexcept
 {
-  return m_job ? m_job->completed() : true;
+  return m_task ? m_task->completed() : true;
 }
 
-inline bool bit::platform::job_handle::available()
+inline bool bit::platform::task_handle::available()
   const noexcept
 {
-  return m_job ? m_job->available() : true;
+  return m_task ? m_task->available() : true;
 }
 
-#endif /* BIT_PLATFORM_THREADING_DETAIL_JOB_INL */
+#endif /* BIT_PLATFORM_THREADING_DETAIL_TASK_INL */
