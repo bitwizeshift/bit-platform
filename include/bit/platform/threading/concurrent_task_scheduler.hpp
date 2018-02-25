@@ -1,15 +1,16 @@
 /**
- * \file task_dispatcher.hpp
+ * \file concurrent_task_scheduler.hpp
  *
  * \brief This header contains implementation information for a multithreaded
- *        task dispatcher system
+ *        task concurrent_task_scheduler system
  *
  * \author Matthew Rodusek (matthew.rodusek@gmail.com)
  */
-#ifndef BIT_PLATFORM_THREADING_DISPATCHER_HPP
-#define BIT_PLATFORM_THREADING_DISPATCHER_HPP
+#ifndef BIT_PLATFORM_THREADING_CONCURRENT_TASK_SCHEDULER_HPP
+#define BIT_PLATFORM_THREADING_CONCURRENT_TASK_SCHEDULER_HPP
 
-#include <bit/platform/threading/task.hpp> // task
+#include "task.hpp" // task
+
 #include <bit/stl/utilities/invoke.hpp>
 
 #include <cstdlib> // std::size_t
@@ -22,88 +23,82 @@
 
 namespace bit {
   namespace platform {
+
     namespace detail {
       class task_queue;
-
-      template<typename T>
-      struct post_task_and_wait_impl;
-
-      template<typename T>
-      struct post_task_and_wait_this_impl;
-
     } // namespace detail
 
     std::ptrdiff_t worker_thread_id();
 
     /// \brief Tag used for assigning affinity to threads in the
-    ///        task_dispatcher
+    ///        task_concurrent_task_scheduler
     struct assign_affinity_t{};
 
     /// \brief Constant used for tag dispatching assigning affinity
     constexpr assign_affinity_t assign_affinity = {};
 
     ///////////////////////////////////////////////////////////////////////////
-    /// \brief A dispatcher for managing the task-system.
+    /// \brief A concurrent_task_scheduler for managing the task-system.
     ///
     /// This uses a work-stealing queue system for stored tasks.
     ///
-    /// \note Only the thread that creates and runs this dispatcher (typically
+    /// \note Only the thread that creates and runs this concurrent_task_scheduler (typically
     ///       from the main message pump) is allowed to stop or destroy this
-    ///       dispatcher.
+    ///       concurrent_task_scheduler.
     ///////////////////////////////////////////////////////////////////////////
-    class dispatcher
+    class concurrent_task_scheduler
     {
       //-----------------------------------------------------------------------
       // Constructors / Destructor / Assignment
       //-----------------------------------------------------------------------
     public:
 
-      /// \brief Default-constructs this task_dispatcher with threads equal
+      /// \brief Default-constructs this task_concurrent_task_scheduler with threads equal
       ///        to the number of logical cores on the system - 1
-      dispatcher();
+      concurrent_task_scheduler();
 
-      /// \brief Constructs the task_dispatcher to use \p threads worker
+      /// \brief Constructs the task_concurrent_task_scheduler to use \p threads worker
       ///        threads
       ///
       /// \param threads the number of worker threads
-      explicit dispatcher( std::size_t threads );
+      explicit concurrent_task_scheduler( std::size_t threads );
 
-      /// \brief Constructs this task_dispatcher with threads equal
+      /// \brief Constructs this task_concurrent_task_scheduler with threads equal
       ///        to the number of logical cores on the system - 1, and
       ///        assigns affinity to each core
-      explicit dispatcher( assign_affinity_t );
+      explicit concurrent_task_scheduler( assign_affinity_t );
 
       /// \brief Constructs \p threads worker threads, each assigned
       ///        affinity to new cores
       ///
       /// \param threads the number of worker threads
-      explicit dispatcher( assign_affinity_t, std::size_t threads );
+      explicit concurrent_task_scheduler( assign_affinity_t, std::size_t threads );
 
       // Deleted move constructor
-      dispatcher( dispatcher&& other ) = delete;
+      concurrent_task_scheduler( concurrent_task_scheduler&& other ) = delete;
 
       // Deleted copy constructor
-      dispatcher( const dispatcher& other ) = delete;
+      concurrent_task_scheduler( const concurrent_task_scheduler& other ) = delete;
 
       //-----------------------------------------------------------------------
 
-      /// \brief Destructs and stops the dispatcher from running
-      ~dispatcher();
+      /// \brief Destructs and stops the concurrent_task_scheduler from running
+      ~concurrent_task_scheduler();
 
       //-----------------------------------------------------------------------
 
       // Deleted move assignment
-      dispatcher& operator=( dispatcher&& other ) = delete;
+      concurrent_task_scheduler& operator=( concurrent_task_scheduler&& other ) = delete;
 
       // Deleted copy assignment
-      dispatcher& operator=( const dispatcher& other ) = delete;
+      concurrent_task_scheduler& operator=( const concurrent_task_scheduler& other ) = delete;
 
       //-----------------------------------------------------------------------
       // Modifiers
       //-----------------------------------------------------------------------
     public:
 
-      /// \brief Runs this task_dispatcher, invoking \p fn each iteration
+      /// \brief Runs this task_concurrent_task_scheduler, invoking \p fn each iteration
       ///
       /// \note The calling thread becomes a worker_thread that invkes \p fn
       ///       before attempting to do work with tasks. Care should be taken
@@ -114,9 +109,9 @@ namespace bit {
       template<typename Fn>
       void run( Fn&& fn );
 
-      /// \brief Signals to stop running this task_dispatcher
+      /// \brief Signals to stop running this task_concurrent_task_scheduler
       ///
-      /// The remaining enqueued tasks will be invoked before this dispatcher
+      /// The remaining enqueued tasks will be invoked before this concurrent_task_scheduler
       /// comes to a full stop. Any tasks being posted after this will result in
       /// std::terminate being called
       void stop();
@@ -132,7 +127,7 @@ namespace bit {
       //-----------------------------------------------------------------------
 
       /// \{
-      /// \brief Posts a task in this dispatcher
+      /// \brief Posts a task in this concurrent_task_scheduler
       ///
       /// \param parent the parent task
       /// \param fn the function to dispatch
@@ -143,13 +138,13 @@ namespace bit {
       void post( const task& parent, Fn&& fn, Args&&...args );
       /// \}
 
-      /// \brief Posts a task in this dispatcher
+      /// \brief Posts a task in this concurrent_task_scheduler
       ///
       /// \param task the task to post
       void post_task( task task );
 
       /// \{
-      /// \brief Posts a task in this dispatcher, waiting for the result
+      /// \brief Posts a task in this concurrent_task_scheduler, waiting for the result
       ///
       /// \param parent the parent task
       /// \param fn the function to dispatch
@@ -168,14 +163,21 @@ namespace bit {
       //-----------------------------------------------------------------------
     private:
 
-      std::vector<std::thread>        m_threads;
+      // Threading
+      std::vector<std::thread>         m_threads;
       std::vector<detail::task_queue*> m_queues;
-      std::thread::id                 m_owner;
-      std::mutex                      m_lock;
-      std::condition_variable         m_cv;
-      std::atomic<std::size_t>        m_running_threads;
-      bool                            m_running;
-      bool                            m_set_affinity;
+#ifndef NDEBUG
+      std::thread::id                  m_owner;
+#endif
+
+      // Locking
+      std::atomic<std::size_t> m_running_threads;
+      std::mutex               m_lock;
+      std::condition_variable  m_cv;
+      bool                     m_running;
+
+      // Initialization
+      bool m_set_affinity;
 
       //-----------------------------------------------------------------------
       // Private Capacity
@@ -193,7 +195,7 @@ namespace bit {
       //-----------------------------------------------------------------------
     private:
 
-      /// \brief Starts this task_dispatcher for the first time
+      /// \brief Starts this task_concurrent_task_scheduler for the first time
       void start();
 
       /// \brief Makes a worker thread with the specified thread \p index
@@ -237,34 +239,32 @@ namespace bit {
     // Free Functions
     //-------------------------------------------------------------------------
 
-    /// \brief Posts a task for execution to \p dispatcher
+    /// \brief Posts a task for execution to \p concurrent_task_scheduler
     ///
-    /// \param dispatcher the dispatcher to post the task to
+    /// \param concurrent_task_scheduler the concurrent_task_scheduler to post the task to
     /// \param task the task to dispatch
-    void post_task( dispatcher& dispatcher, task task );
+    void post_task( concurrent_task_scheduler& concurrent_task_scheduler, task task );
 
     /// \brief Waits for the task based on the handle
     ///
-    /// \param dispatcher the dispatcher to wait on
+    /// \param concurrent_task_scheduler the concurrent_task_scheduler to wait on
     /// \param task the handle to wait for
-    void wait( dispatcher& dispatcher, task_handle task );
+    void wait( concurrent_task_scheduler& concurrent_task_scheduler, task_handle task );
 
     //-------------------------------------------------------------------------
 
     /// \{
-    /// \brief Creates and posts a task to the specified \p dispatcher
+    /// \brief Creates and posts a task to the specified \p concurrent_task_scheduler
     ///
-    /// \param dispatcher the dispatcher to post the task to
+    /// \param concurrent_task_scheduler the concurrent_task_scheduler to post the task to
     /// \param parent the parent task
     /// \param fn the function to invoke
     /// \param args the arguments to forward to \p fn
     template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
-    void post( dispatcher& dispatcher, Fn&& fn, Args&&...args );
+    void post( concurrent_task_scheduler& concurrent_task_scheduler, Fn&& fn, Args&&...args );
     template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
-    void post( dispatcher& dispatcher,
+    void post( concurrent_task_scheduler& concurrent_task_scheduler,
                const task& parent, Fn&& fn, Args&&...args );
-    template<typename Fn, typename...Args>
-    void post( dispatcher&, std::nullptr_t, Fn&&, Args&&... ) = delete;
     /// \}
 
     //-------------------------------------------------------------------------
@@ -276,47 +276,38 @@ namespace bit {
     /// This makes the result appear synchronous, despite the fact that it
     /// may be invoked on a different thread.
     ///
-    /// \param dispatcher the dispatcher to post the task to
+    /// \param concurrent_task_scheduler the concurrent_task_scheduler to post the task to
     /// \param parent the parent task
     /// \param fn the function to invoke
     /// \param args the arguments to forward to \p fn
     /// \return the result of the invocation
     template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
     stl::invoke_result_t<Fn,Args...>
-      post_and_wait( dispatcher& dispatcher, Fn&& fn, Args&&...args );
+      post_and_wait( concurrent_task_scheduler& concurrent_task_scheduler, Fn&& fn, Args&&...args );
     template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
     stl::invoke_result_t<Fn,Args...>
-      post_and_wait( dispatcher& dispatcher,
+      post_and_wait( concurrent_task_scheduler& concurrent_task_scheduler,
                      const task& parent, Fn&& fn, Args&&...args );
-    template<typename Fn, typename...Args>
-    stl::invoke_result_t<Fn,Args...>
-      post_and_wait( dispatcher&,
-                     std::nullptr_t, Fn&&, Args&&... ) = delete;
     /// \}
 
     //-------------------------------------------------------------------------
 
     /// \brief This namespace is used to dispatch functions to the currently
-    ///        active dispatcher without requiring passing the dispatcher as
+    ///        active concurrent_task_scheduler without requiring passing the concurrent_task_scheduler as
     ///        the active argument
-    namespace this_dispatcher {
+    namespace this_concurrent_task_scheduler {
 
-      /// \brief Posts a task for execution to the active dispatcher
+      /// \brief Posts a task for execution to the active concurrent_task_scheduler
       ///
       /// \param task the task to dispatch
       void post_task( task task );
 
-      /// \brief Waits for the task based on the handle
-      ///
-      /// \param task the handle to wait for
-      void wait( task_handle task );
-
       //-----------------------------------------------------------------------
 
       /// \{
-      /// \brief Creates and posts a task to the specified \p dispatcher
+      /// \brief Creates and posts a task to the specified \p concurrent_task_scheduler
       ///
-      /// \param dispatcher the dispatcher to post the task to
+      /// \param concurrent_task_scheduler the concurrent_task_scheduler to post the task to
       /// \param parent the parent task
       /// \param fn the function to invoke
       /// \param args the arguments to forward to \p fn
@@ -324,39 +315,12 @@ namespace bit {
       void post( Fn&& fn, Args&&...args );
       template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
       void post( const task& parent, Fn&& fn, Args&&...args );
-      template<typename Fn, typename...Args>
-      void post( std::nullptr_t, Fn&&, Args&&... ) = delete;
       /// \}
 
-      //-----------------------------------------------------------------------
-
-      /// \{
-      /// \brief Creates, posts, and waits for the completion of a specified
-      ///        task.
-      ///
-      /// This makes the result appear synchronous, despite the fact that it
-      /// may be invoked on a different thread.
-      ///
-      /// \param dispatcher the dispatcher to post the task to
-      /// \param parent the parent task
-      /// \param fn the function to invoke
-      /// \param args the arguments to forward to \p fn
-      /// \return the result of the invocation
-      template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
-      stl::invoke_result_t<Fn,Args...>
-        post_and_wait( Fn&& fn, Args&&...args );
-      template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
-      stl::invoke_result_t<Fn,Args...>
-        post_and_wait( const task& parent, Fn&& fn, Args&&...args );
-      template<typename Fn, typename...Args>
-      stl::invoke_result_t<Fn,Args...>
-        post_and_wait( std::nullptr_t, Fn&&, Args&&... ) = delete;
-      /// \}
-
-    } // namespace this_dispatcher
+    } // namespace this_concurrent_task_scheduler
   } // namespace thread
 } // namespace bit
 
-#include "detail/dispatcher.inl"
+#include "detail/concurrent_task_scheduler.inl"
 
-#endif /* BIT_PLATFORM_THREADING_DISPATCHER_HPP */
+#endif /* BIT_PLATFORM_THREADING_CONCURRENT_TASK_SCHEDULER_HPP */

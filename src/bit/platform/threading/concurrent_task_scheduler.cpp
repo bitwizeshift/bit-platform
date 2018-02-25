@@ -1,4 +1,4 @@
-#include <bit/platform/threading/dispatcher.hpp>
+#include <bit/platform/threading/concurrent_task_scheduler.hpp>
 #include <bit/platform/threading/thread.hpp>
 
 #include <random> // std::random_device, sdt::uniform_distribution, etc
@@ -9,15 +9,15 @@
 
 #include "detail/task_queue.hpp" // detail::task_queue
 
-//============================================================================
+//=============================================================================
 // Anonymous Namespaces
-//============================================================================
+//=============================================================================
 
 namespace {
 
-  //--------------------------------------------------------------------------
+  //---------------------------------------------------------------------------
   // Utility Functions
-  //--------------------------------------------------------------------------
+  //---------------------------------------------------------------------------
 
   /// \brief Generates a random number between \p low and \p high
   ///
@@ -32,12 +32,12 @@ namespace {
   /// \return pointer to the task queue
   bit::platform::detail::task_queue* get_task_queue();
 
-  //--------------------------------------------------------------------------
+  //---------------------------------------------------------------------------
   // Globals
-  //--------------------------------------------------------------------------
+  //---------------------------------------------------------------------------
 
   thread_local std::ptrdiff_t     g_thread_index = 0;
-  thread_local bit::platform::dispatcher* g_this_dispatcher = nullptr;
+  thread_local bit::platform::concurrent_task_scheduler* g_this_concurrent_task_scheduler = nullptr;
 
 } // namespace anonymous
 
@@ -46,21 +46,21 @@ std::ptrdiff_t bit::platform::worker_thread_id()
   return g_thread_index;
 }
 
-//============================================================================
-// task_dispatcher
-//============================================================================
+//=============================================================================
+// task_concurrent_task_scheduler
+//=============================================================================
 
-//----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 // Constructors / Destructor
-//----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
-bit::platform::dispatcher::dispatcher()
-  : dispatcher( std::thread::hardware_concurrency() - 1 )
+bit::platform::concurrent_task_scheduler::concurrent_task_scheduler()
+  : concurrent_task_scheduler( std::thread::hardware_concurrency() - 1 )
 {
 
 }
 
-bit::platform::dispatcher::dispatcher( std::size_t threads )
+bit::platform::concurrent_task_scheduler::concurrent_task_scheduler( std::size_t threads )
   : m_running(false),
     m_set_affinity(false),
     m_running_threads(0)
@@ -70,16 +70,15 @@ bit::platform::dispatcher::dispatcher( std::size_t threads )
 }
 
 
-bit::platform::dispatcher::dispatcher( assign_affinity_t )
-  : dispatcher( assign_affinity, std::thread::hardware_concurrency() - 1 )
+bit::platform::concurrent_task_scheduler::concurrent_task_scheduler( assign_affinity_t )
+  : concurrent_task_scheduler( assign_affinity, std::thread::hardware_concurrency() - 1 )
 {
 
 }
 
-bit::platform::dispatcher::dispatcher( assign_affinity_t, std::size_t threads )
+bit::platform::concurrent_task_scheduler::concurrent_task_scheduler( assign_affinity_t, std::size_t threads )
 : m_running(false),
   m_set_affinity(true),
-  m_owner(),
   m_running_threads(0)
 
 {
@@ -87,20 +86,21 @@ bit::platform::dispatcher::dispatcher( assign_affinity_t, std::size_t threads )
   m_queues.resize(threads+1);
 }
 
-//----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
-bit::platform::dispatcher::~dispatcher()
+bit::platform::concurrent_task_scheduler::~concurrent_task_scheduler()
 {
   stop();
 }
 
-//----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 // Modifiers
-//----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
-void bit::platform::dispatcher::stop()
+void bit::platform::concurrent_task_scheduler::stop()
 {
-  assert( m_owner == std::this_thread::get_id() && "task_dispatcher can only be stopped on the creating thread");
+  assert( m_owner == std::this_thread::get_id() &&
+          "task_concurrent_task_scheduler can only be stopped on the creating thread");
 
   if(!m_running) return;
   m_running = false;
@@ -111,23 +111,23 @@ void bit::platform::dispatcher::stop()
   }
 }
 
-//----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
-void bit::platform::dispatcher::wait( task_handle task )
+void bit::platform::concurrent_task_scheduler::wait( task_handle task )
 {
   help_while([&]{ return !task.completed(); });
 }
 
-void bit::platform::dispatcher::post_task( task task )
+void bit::platform::concurrent_task_scheduler::post_task( task task )
 {
   push_task( std::move(task) );
 }
 
-//----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 // Private Capacity
-//----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
-bool bit::platform::dispatcher::has_remaining_tasks()
+bool bit::platform::concurrent_task_scheduler::has_remaining_tasks()
   const noexcept
 {
   for( auto& queue : m_queues ) {
@@ -136,20 +136,21 @@ bool bit::platform::dispatcher::has_remaining_tasks()
   return false;
 }
 
-//----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 // Private Modifiers
-//----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
-void bit::platform::dispatcher::start()
+void bit::platform::concurrent_task_scheduler::start()
 {
   // Set the owner on 'start' call
   if( m_owner == std::thread::id() ) {
     m_owner = std::this_thread::get_id();
     g_thread_index = 0;
-    g_this_dispatcher = this;
+    g_this_concurrent_task_scheduler = this;
   }
 
-  assert( m_owner == std::this_thread::get_id() && "task_dispatcher can only be started on the creating thread");
+  assert( m_owner == std::this_thread::get_id() &&
+          "task_concurrent_task_scheduler can only be started on the creating thread" );
 
   if( m_running ) return;
 
@@ -172,7 +173,7 @@ void bit::platform::dispatcher::start()
   }
 }
 
-std::thread bit::platform::dispatcher::make_worker_thread( std::ptrdiff_t index )
+std::thread bit::platform::concurrent_task_scheduler::make_worker_thread( std::ptrdiff_t index )
 {
   return std::thread([this,index]()
   {
@@ -182,7 +183,7 @@ std::thread bit::platform::dispatcher::make_worker_thread( std::ptrdiff_t index 
     }
 
     g_thread_index = index;
-    g_this_dispatcher = this;
+    g_this_concurrent_task_scheduler = this;
 
     ++m_running_threads;
     do_work();
@@ -194,9 +195,9 @@ std::thread bit::platform::dispatcher::make_worker_thread( std::ptrdiff_t index 
   });
 }
 
-//----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
-bit::platform::task bit::platform::dispatcher::get_task()
+bit::platform::task bit::platform::concurrent_task_scheduler::get_task()
 {
   auto& queue = *m_queues[g_thread_index];
 
@@ -226,7 +227,7 @@ bit::platform::task bit::platform::dispatcher::get_task()
   return j;
 }
 
-void bit::platform::dispatcher::push_task( task task )
+void bit::platform::concurrent_task_scheduler::push_task( task task )
 {
   if( !m_running ) std::terminate();
   m_queues[g_thread_index]->push( std::move(task) );
@@ -234,7 +235,7 @@ void bit::platform::dispatcher::push_task( task task )
 }
 
 template<typename Condition>
-void bit::platform::dispatcher::help_while( Condition&& condition )
+void bit::platform::concurrent_task_scheduler::help_while( Condition&& condition )
 {
   while( std::forward<Condition>(condition)() ) {
     auto j = get_task();
@@ -247,12 +248,12 @@ void bit::platform::dispatcher::help_while( Condition&& condition )
   }
 }
 
-void bit::platform::dispatcher::help_while_unavailable( const task& j )
+void bit::platform::concurrent_task_scheduler::help_while_unavailable( const task& j )
 {
   help_while( [&]{ return !j.available(); } );
 }
 
-void bit::platform::dispatcher::do_work()
+void bit::platform::concurrent_task_scheduler::do_work()
 {
   help_while( [&]{ return m_running; } );
 
@@ -261,40 +262,32 @@ void bit::platform::dispatcher::do_work()
   help_while( [&]{ return !m_queues[g_thread_index]->empty(); } );
 }
 
-//----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 // Free Functions
-//----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
-void bit::platform::post_task( dispatcher& dispatcher, task task )
+void bit::platform::post_task( concurrent_task_scheduler& scheduler, task task )
 {
-  dispatcher.post_task( std::move(task) );
+  scheduler.post_task( std::move(task) );
 }
 
-void bit::platform::wait( dispatcher& dispatcher, task_handle task )
+void bit::platform::wait( concurrent_task_scheduler& scheduler, task_handle task )
 {
-  dispatcher.wait(task);
+  scheduler.wait(task);
 }
 
-//----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 // This Dispatcher : Free Functions
-//----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
-void bit::platform::this_dispatcher::post_task( task task )
+void bit::platform::this_concurrent_task_scheduler::post_task( task task )
 {
-  assert( g_this_dispatcher && "post_task can only be called in a dispatcher's task queue" );
+  assert( g_this_concurrent_task_scheduler &&
+         "post_task can only be called in a scheduler's task queue" );
 
-  auto& dispatcher = *g_this_dispatcher;
-  dispatcher.post_task( std::move(task) );
+  auto& scheduler = *g_this_concurrent_task_scheduler;
+  scheduler.post_task( std::move(task) );
 }
-
-void bit::platform::this_dispatcher::wait( task_handle task )
-{
-  assert( g_this_dispatcher && "wait can only be called in a dispatcher's task queue" );
-
-  auto& dispatcher = *g_this_dispatcher;
-  dispatcher.wait( task );
-}
-
 
 namespace {
 
@@ -308,7 +301,7 @@ namespace {
     return distribution(s_engine);
   }
 
-  //--------------------------------------------------------------------------
+  //---------------------------------------------------------------------------
 
   bit::platform::detail::task_queue* get_task_queue()
   {
