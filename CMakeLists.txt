@@ -60,7 +60,7 @@ set(headers
   # threading
   include/bit/platform/threading/concurrent_queue.hpp
   include/bit/platform/threading/concurrent_task_scheduler.hpp
-  include/bit/platform/threading/dispatch_queue.hpp
+  include/bit/platform/threading/serial_task_scheduler.hpp
   include/bit/platform/threading/task.hpp
   include/bit/platform/threading/null_mutex.hpp
   include/bit/platform/threading/semaphore.hpp
@@ -118,7 +118,7 @@ endif()
 
 set(source_files
   # threading
-  src/bit/platform/threading/dispatch_queue.cpp
+  src/bit/platform/threading/serial_task_scheduler.cpp
   src/bit/platform/threading/concurrent_task_scheduler.cpp
   src/bit/platform/threading/task.cpp
   src/bit/platform/threading/spin_lock.cpp

@@ -1,17 +1,17 @@
-#ifndef BIT_THREAD_DETAIL_DISPATCH_QUEUE_INL
-#define BIT_THREAD_DETAIL_DISPATCH_QUEUE_INL
+#ifndef BIT_THREAD_DETAIL_SERIAL_TASK_SCHEDULER_INL
+#define BIT_THREAD_DETAIL_SERIAL_TASK_SCHEDULER_INL
 
 //=============================================================================
-// detail::dispatch_queue_post_task_and_wait_impl
+// detail::serial_task_scheduler_post_task_and_wait_impl
 //=============================================================================
 
 namespace bit { namespace platform { namespace detail {
 
   template<typename T>
-  struct dispatch_queue_post_task_and_wait_impl
+  struct serial_task_scheduler_post_task_and_wait_impl
   {
     template<typename Fn, typename...Args>
-    static T invoke( dispatch_queue& dispatch_queue, Fn&& fn, Args&&...args )
+    static T invoke( serial_task_scheduler& serial_task_scheduler, Fn&& fn, Args&&...args )
     {
       using storage_type = std::aligned_storage_t<sizeof(T),alignof(T)>;
       auto storage = storage_type{};
@@ -22,14 +22,14 @@ namespace bit { namespace platform { namespace detail {
       });
 
       auto handle = task_handle(task);
-      dispatch_queue.post_task( std::move(task) );
-      dispatch_queue.wait( handle );
+      serial_task_scheduler.post_task( std::move(task) );
+      serial_task_scheduler.wait( handle );
 
       return std::move( *reinterpret_cast<T*>(&storage) );
     }
 
     template<typename Fn, typename...Args>
-    static T invoke( dispatch_queue& dispatch_queue,
+    static T invoke( serial_task_scheduler& serial_task_scheduler,
                      const task& parent, Fn&& fn, Args&&...args )
     {
       using storage_type = std::aligned_storage_t<sizeof(T),alignof(T)>;
@@ -41,8 +41,8 @@ namespace bit { namespace platform { namespace detail {
       });
 
       auto handle = task_handle(task);
-      dispatch_queue.post_task( std::move(task) );
-      dispatch_queue.wait( handle );
+      serial_task_scheduler.post_task( std::move(task) );
+      serial_task_scheduler.wait( handle );
 
       return std::move( *static_cast<T*>(&storage) );
     }
@@ -51,10 +51,10 @@ namespace bit { namespace platform { namespace detail {
   //---------------------------------------------------------------------------
 
   template<typename T>
-  struct dispatch_queue_post_task_and_wait_impl<T&>
+  struct serial_task_scheduler_post_task_and_wait_impl<T&>
   {
     template<typename Fn, typename...Args>
-    static T& invoke( dispatch_queue& dispatch_queue, Fn&& fn, Args&&...args )
+    static T& invoke( serial_task_scheduler& serial_task_scheduler, Fn&& fn, Args&&...args )
     {
       T* ptr;
 
@@ -64,14 +64,14 @@ namespace bit { namespace platform { namespace detail {
       });
 
       auto handle = task_handle(task);
-      dispatch_queue.post_task( std::move(task) );
-      dispatch_queue.wait( handle );
+      serial_task_scheduler.post_task( std::move(task) );
+      serial_task_scheduler.wait( handle );
 
       return *ptr;
     }
 
     template<typename Fn, typename...Args>
-    static T& invoke( dispatch_queue& dispatch_queue,
+    static T& invoke( serial_task_scheduler& serial_task_scheduler,
                       const task& parent, Fn&& fn, Args&&...args )
     {
       T* ptr;
@@ -82,8 +82,8 @@ namespace bit { namespace platform { namespace detail {
       });
 
       auto handle = task_handle(task);
-      dispatch_queue.post_task( std::move(task) );
-      dispatch_queue.wait( handle );
+      serial_task_scheduler.post_task( std::move(task) );
+      serial_task_scheduler.wait( handle );
 
       return *ptr;
     }
@@ -92,10 +92,10 @@ namespace bit { namespace platform { namespace detail {
   //---------------------------------------------------------------------------
 
   template<>
-  struct dispatch_queue_post_task_and_wait_impl<void>
+  struct serial_task_scheduler_post_task_and_wait_impl<void>
   {
     template<typename Fn, typename...Args>
-    static void invoke( dispatch_queue& dispatch_queue, Fn&& fn, Args&&...args )
+    static void invoke( serial_task_scheduler& serial_task_scheduler, Fn&& fn, Args&&...args )
     {
       auto task = make_task( [&]()
       {
@@ -103,12 +103,12 @@ namespace bit { namespace platform { namespace detail {
       });
 
       auto handle = task_handle(task);
-      dispatch_queue.post_task( task );
-      dispatch_queue.wait( handle );
+      serial_task_scheduler.post_task( task );
+      serial_task_scheduler.wait( handle );
     }
 
     template<typename Fn, typename...Args>
-    static void invoke( dispatch_queue& dispatch_queue,
+    static void invoke( serial_task_scheduler& serial_task_scheduler,
                         const task& parent, Fn&& fn, Args&&...args )
     {
       auto task = make_task( parent, [&]()
@@ -117,15 +117,15 @@ namespace bit { namespace platform { namespace detail {
       });
 
       auto handle = task_handle(task);
-      dispatch_queue.post_task( std::move(task) );
-      dispatch_queue.wait( handle );
+      serial_task_scheduler.post_task( std::move(task) );
+      serial_task_scheduler.wait( handle );
     }
   };
 
 } } } // namespace bit::platform::detail
 
 //=============================================================================
-// dispatch_queue
+// serial_task_scheduler
 //=============================================================================
 
 //-----------------------------------------------------------------------------
@@ -133,7 +133,8 @@ namespace bit { namespace platform { namespace detail {
 //-----------------------------------------------------------------------------
 
 template<typename Fn, typename...Args>
-void bit::platform::dispatch_queue::post( Fn&& fn, Args&&...args )
+void bit::platform::serial_task_scheduler::post( Fn&& fn,
+                                                 Args&&...args )
 {
   auto task = make_task( std::forward<Fn>(fn), std::forward<Args>(args)... );
 
@@ -142,7 +143,9 @@ void bit::platform::dispatch_queue::post( Fn&& fn, Args&&...args )
 }
 
 template<typename Fn, typename...Args>
-void bit::platform::dispatch_queue::post( const task& parent, Fn&& fn, Args&&...args )
+void bit::platform::serial_task_scheduler::post( const task& parent,
+                                                 Fn&& fn,
+                                                 Args&&...args )
 {
   auto task = make_task( parent, std::forward<Fn>(fn), std::forward<Args>(args)... );
 
@@ -154,22 +157,24 @@ void bit::platform::dispatch_queue::post( const task& parent, Fn&& fn, Args&&...
 
 template<typename Fn, typename...Args>
 bit::stl::invoke_result_t<Fn,Args...>
-  bit::platform::dispatch_queue::post_and_wait( Fn&& fn, Args&&...args )
+  bit::platform::serial_task_scheduler::post_and_wait( Fn&& fn,
+                                                       Args&&...args )
 {
   using result_type = stl::invoke_result_t<Fn,Args...>;
 
-  return detail::dispatch_queue_post_task_and_wait_impl<result_type>
+  return detail::serial_task_scheduler_post_task_and_wait_impl<result_type>
     ::invoke( *this, std::forward<Fn>(fn), std::forward<Args>(args)... );
 }
 
 template<typename Fn, typename...Args>
 bit::stl::invoke_result_t<Fn,Args...>
-  bit::platform::dispatch_queue::post_and_wait( const task& parent,
-                                              Fn&& fn, Args&&...args )
+  bit::platform::serial_task_scheduler::post_and_wait( const task& parent,
+                                                       Fn&& fn,
+                                                       Args&&...args )
 {
   using result_type = stl::invoke_result_t<Fn,Args...>;
 
-  return detail::dispatch_queue_post_task_and_wait_impl<result_type>
+  return detail::serial_task_scheduler_post_task_and_wait_impl<result_type>
     ::invoke( *this, parent, std::forward<Fn>(fn), std::forward<Args>(args)... );
 }
 
@@ -178,38 +183,45 @@ bit::stl::invoke_result_t<Fn,Args...>
 //-----------------------------------------------------------------------------
 
 template<typename Fn, typename...Args, typename>
-inline void bit::platform::post( dispatch_queue& queue,
-                               Fn&& fn, Args&&...args )
+inline void bit::platform::post( serial_task_scheduler& scheduler,
+                                 Fn&& fn,
+                                 Args&&...args )
 {
-  queue.post( std::forward<Fn>(fn), std::forward<Args>(args)... );
+  scheduler.post( std::forward<Fn>(fn), std::forward<Args>(args)... );
 }
 
 
 template<typename Fn, typename...Args, typename>
-inline void bit::platform::post( dispatch_queue& queue,
-                               const task& parent, Fn&& fn, Args&&...args )
+inline void bit::platform::post( serial_task_scheduler& scheduler,
+                                 const task& parent,
+                                 Fn&& fn,
+                                 Args&&...args )
 {
-  queue.post( parent, std::forward<Fn>(fn), std::forward<Args>(args)... );
+  scheduler.post( parent, std::forward<Fn>(fn), std::forward<Args>(args)... );
 }
 
 //-----------------------------------------------------------------------------
 
 template<typename Fn, typename...Args, typename>
 bit::stl::invoke_result_t<Fn,Args...>
-  bit::platform::post_and_wait( dispatch_queue& queue, Fn&& fn, Args&&...args )
+  bit::platform::post_and_wait( serial_task_scheduler& scheduler,
+                                Fn&& fn,
+                                Args&&...args )
 {
-  return queue.post_and_wait( std::forward<Fn>(fn),
-                              std::forward<Args>(args)... );
+  return scheduler.post_and_wait( std::forward<Fn>(fn),
+                                  std::forward<Args>(args)... );
 }
 
 template<typename Fn, typename...Args, typename>
 bit::stl::invoke_result_t<Fn,Args...>
-  bit::platform::post_and_wait( dispatch_queue& queue,
-                                const task& parent, Fn&& fn, Args&&...args )
+  bit::platform::post_and_wait( serial_task_scheduler& scheduler,
+                                const task& parent,
+                                Fn&& fn,
+                                Args&&...args )
 {
-  return queue.post_and_wait( parent,
-                              std::forward<Fn>(fn),
-                              std::forward<Args>(args)... );
+  return scheduler.post_and_wait( parent,
+                                  std::forward<Fn>(fn),
+                                  std::forward<Args>(args)... );
 }
 
 //-----------------------------------------------------------------------------
@@ -217,7 +229,8 @@ bit::stl::invoke_result_t<Fn,Args...>
 //-----------------------------------------------------------------------------
 
 template<typename Fn, typename...Args, typename>
-inline void bit::platform::this_dispatch_queue::post( Fn&& fn, Args&&...args )
+inline void bit::platform::this_serial_task_scheduler::post( Fn&& fn,
+                                                             Args&&...args )
 {
   auto task = make_task( std::forward<Fn>(fn), std::forward<Args>(args)... );
 
@@ -226,12 +239,15 @@ inline void bit::platform::this_dispatch_queue::post( Fn&& fn, Args&&...args )
 
 
 template<typename Fn, typename...Args, typename>
-inline void bit::platform::this_dispatch_queue::post( const task& parent,
-                                                      Fn&& fn, Args&&...args )
+inline void bit::platform::this_serial_task_scheduler::post( const task& parent,
+                                                             Fn&& fn,
+                                                             Args&&...args )
 {
-  auto task = make_task( parent, std::forward<Fn>(fn), std::forward<Args>(args)... );
+  auto task = make_task( parent,
+                         std::forward<Fn>(fn),
+                         std::forward<Args>(args)... );
 
   post_task( std::move(task) );
 }
 
-#endif /* BIT_THREAD_DETAIL_DISPATCH_QUEUE_INL */
+#endif /* BIT_THREAD_DETAIL_SERIAL_TASK_SCHEDULER_INL */

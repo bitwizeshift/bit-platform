@@ -1,5 +1,4 @@
-#include <bit/platform/threading/dispatch_queue.hpp>
-
+#include <bit/platform/threading/serial_task_scheduler.hpp>
 #include <random> // std::random_device, sdt::uniform_distribution, etc
 #include <memory> // std::unique_ptr
 #include <vector> // std::vector
@@ -14,16 +13,11 @@
 
 namespace {
 
-  /// \brief Gets the address of this thread's active task queue
-  ///
-  /// \return pointer to the task queue
-//  bit::platform::detail::task_queue* get_task_queue();
-
   //---------------------------------------------------------------------------
   // Globals
   //---------------------------------------------------------------------------
 
-  thread_local bit::platform::dispatch_queue* g_this_queue = nullptr;
+  thread_local bit::platform::serial_task_scheduler* g_this_serial_scheduler = nullptr;
 
 } // namespace anonymous
 
@@ -35,14 +29,15 @@ namespace {
 // Constructor / Destructor
 //-----------------------------------------------------------------------------
 
-bit::platform::dispatch_queue::dispatch_queue()
+bit::platform::serial_task_scheduler::serial_task_scheduler()
   : m_is_running(false),
-    m_queue(std::make_unique<detail::task_queue>()) // HACK: temporary m_queue
+    m_worker{ std::thread{},
+              std::make_unique<detail::task_queue>() } // HACK: temporary m_queue
 {
 
 }
 
-bit::platform::dispatch_queue::~dispatch_queue()
+bit::platform::serial_task_scheduler::~serial_task_scheduler()
 {
   stop();
 }
@@ -51,24 +46,33 @@ bit::platform::dispatch_queue::~dispatch_queue()
 // Modifiers
 //-----------------------------------------------------------------------------
 
-void bit::platform::dispatch_queue::start()
+void bit::platform::serial_task_scheduler::start()
 {
   if( m_is_running ) return;
 
   m_is_running = true;
-  m_thread = std::thread(&dispatch_queue::run,this);
+  m_worker.thread = std::thread(&serial_task_scheduler::run,this);
+
+#ifndef NDEBUG
+  m_owner = std::this_thread::get_id();
+#endif
 }
 
-void bit::platform::dispatch_queue::stop()
+void bit::platform::serial_task_scheduler::stop()
 {
+#ifndef NDEBUG
+  assert( m_owner == std::this_thread::get_id() &&
+          "serial_task_scheduler can only be stopped by the thread that started it" );
+#endif
+
   if( !m_is_running ) return;
 
   m_is_running = false;
   m_cv.notify_all();
-  m_thread.join();
+  m_worker.thread.join();
 }
 
-void bit::platform::dispatch_queue::wait( task_handle task )
+void bit::platform::serial_task_scheduler::wait( task_handle task )
 {
   // wait until task is completed
   std::mutex mutex;
@@ -79,31 +83,30 @@ void bit::platform::dispatch_queue::wait( task_handle task )
 
 //-----------------------------------------------------------------------------
 
-void bit::platform::dispatch_queue::post_task( task task )
+void bit::platform::serial_task_scheduler::post_task( task task )
 {
-  if( !m_is_running )
-    std::terminate();
+  if( !m_is_running ) return;
 
-  m_queue->push( std::move(task) );
+  m_worker.task_queue->push( std::move(task) );
 }
 
 //-----------------------------------------------------------------------------
 // Private Modifiers
 //-----------------------------------------------------------------------------
 
-void bit::platform::dispatch_queue::run()
+void bit::platform::serial_task_scheduler::run()
 {
-  g_this_queue = this;
+  g_this_serial_scheduler = this;
 
   while( true ) {
-
-    if( !m_is_running && m_queue->empty() ) break;
 
     // wait until task is entered into queue
     {
       std::unique_lock<std::mutex> lock(m_mutex);
-      m_cv.wait(lock, [&]{ return !m_queue->empty(); });
+      m_cv.wait(lock, [&]{ return !m_is_running || !m_worker.task_queue->empty(); });
     }
+
+    if( !m_is_running && m_worker.task_queue->empty() ) break;
 
     auto j = get_task();
 
@@ -114,56 +117,43 @@ void bit::platform::dispatch_queue::run()
   }
 }
 
-bit::platform::task bit::platform::dispatch_queue::get_task()
+bit::platform::task bit::platform::serial_task_scheduler::get_task()
 {
-  return m_queue->steal();
+  return m_worker.task_queue->steal();
 }
 
 //-----------------------------------------------------------------------------
 // Free Functions
 //-----------------------------------------------------------------------------
 
-void bit::platform::post_task( dispatch_queue& queue, task task )
+void bit::platform::post_task( serial_task_scheduler& scheduler, task task )
 {
-  queue.post_task( std::move(task) );
+  scheduler.post_task( std::move(task) );
 }
 
-void bit::platform::wait( dispatch_queue& queue, task_handle task )
+void bit::platform::wait( serial_task_scheduler& scheduler, task_handle task )
 {
-  queue.wait( task );
+  scheduler.wait( task );
 }
 
 //-----------------------------------------------------------------------------
 // This Dispatch Queue : Free Functions
 //-----------------------------------------------------------------------------
 
-void bit::platform::this_dispatch_queue::post_task( task task )
+void bit::platform::this_serial_task_scheduler::post_task( task task )
 {
-  assert( g_this_queue != nullptr && "post_task can only be called in an active dispatch queue" );
+  assert( g_this_serial_scheduler != nullptr &&
+          "post_task can only be called in an active scheduler" );
 
-  auto& queue = *g_this_queue;
-  queue.post_task( std::move(task) );
+  auto& scheduler = *g_this_serial_scheduler;
+  scheduler.post_task( std::move(task) );
 }
 
-void bit::platform::this_dispatch_queue::wait( task_handle task )
+void bit::platform::this_serial_task_scheduler::wait( task_handle task )
 {
-  assert( g_this_queue != nullptr && "wait can only be called in an active dispatch queue" );
+  assert( g_this_serial_scheduler != nullptr &&
+          "wait can only be called in an active scheduler" );
 
-  auto& queue = *g_this_queue;
-  queue.wait( task );
+  auto& scheduler = *g_this_serial_scheduler;
+  scheduler.wait( task );
 }
-
-//=============================================================================
-// Anonymous Definitions
-//=============================================================================
-
-namespace {
-
-//  bit::platform::detail::task_queue* get_task_queue()
-//  {
-//    thread_local bit::platform::detail::task_queue s_queue;
-//
-//    return &s_queue;
-//  }
-
-} // namespace anonymous
