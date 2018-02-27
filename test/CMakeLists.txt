@@ -4,7 +4,7 @@ find_package(Catch REQUIRED)
 
 set(sources
       main.test.cpp
-      bit/platform/threading/concurrent_queue.test.cpp
+      bit/platform/concurrency/utilities/concurrent_queue.test.cpp
 )
 
 add_executable(platform_test ${sources})

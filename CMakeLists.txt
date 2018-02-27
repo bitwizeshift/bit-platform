@@ -57,22 +57,22 @@ make_version_header("${CMAKE_CURRENT_BINARY_DIR}/include/bit/platform/version.hp
 )
 
 set(headers
-  # threading
-  include/bit/platform/threading/concurrent_queue.hpp
-  include/bit/platform/threading/concurrent_task_scheduler.hpp
-  include/bit/platform/threading/serial_task_scheduler.hpp
-  include/bit/platform/threading/task.hpp
-  include/bit/platform/threading/task_scheduler.hpp
-  include/bit/platform/threading/this_task_scheduler.hpp
-  include/bit/platform/threading/null_mutex.hpp
-  include/bit/platform/threading/semaphore.hpp
-  include/bit/platform/threading/shared_mutex.hpp
-  include/bit/platform/threading/spin_lock.hpp
-  include/bit/platform/threading/thread.hpp
-  include/bit/platform/threading/thread_pool.hpp
-  include/bit/platform/threading/true_share.hpp
-  include/bit/platform/threading/unlock_guard.hpp
-  include/bit/platform/threading/waitable_event.hpp
+  # Concurrency
+  include/bit/platform/concurrency/pools/thread_pool.hpp
+  include/bit/platform/concurrency/primitives/null_mutex.hpp
+  include/bit/platform/concurrency/primitives/semaphore.hpp
+  include/bit/platform/concurrency/primitives/shared_mutex.hpp
+  include/bit/platform/concurrency/primitives/spin_lock.hpp
+  include/bit/platform/concurrency/schedulers/concurrent_task_scheduler.hpp
+  include/bit/platform/concurrency/schedulers/serial_task_scheduler.hpp
+  include/bit/platform/concurrency/schedulers/task.hpp
+  include/bit/platform/concurrency/schedulers/task_scheduler.hpp
+  include/bit/platform/concurrency/schedulers/this_task_scheduler.hpp
+  include/bit/platform/concurrency/utilities/concurrent_queue.hpp
+  include/bit/platform/concurrency/utilities/thread.hpp
+  include/bit/platform/concurrency/utilities/true_share.hpp
+  include/bit/platform/concurrency/utilities/unlock_guard.hpp
+  include/bit/platform/concurrency/utilities/waitable_event.hpp
 
   # filesystem
   include/bit/platform/filesystem/detail/tags.hpp
@@ -93,8 +93,8 @@ set(headers
 if( WIN32 )
   set(platform_source_files
     # threading
-    src/bit/platform/threading/win32/thread.cpp
-    src/bit/platform/threading/win32/semaphore.cpp
+    src/bit/platform/concurrency/utilities/win32/thread.cpp
+    src/bit/platform/concurrency/primitives/win32/semaphore.cpp
 
     # fiesystem
     src/bit/platform/filesystem/win32/disk_filesystem.cpp
@@ -106,13 +106,13 @@ if( WIN32 )
   )
 elseif( UNIX )
   set(platform_source_files
-    src/bit/platform/threading/posix/thread.cpp
-    src/bit/platform/threading/posix/semaphore.cpp
+    src/bit/platform/concurrency/utilities/posix/thread.cpp
+    src/bit/platform/concurrency/primitives/posix/semaphore.cpp
   )
 elseif( APPLE )
   set(platform_source_files
-    src/bit/platform/threading/mac/thread.cpp
-    src/bit/platform/threading/mac/semaphore.cpp
+    src/bit/platform/concurrency/utilities/mac/thread.cpp
+    src/bit/platform/concurrency/primitives/mac/semaphore.cpp
   )
 else()
   message(FATAL_ERROR "unknown or unsupported target platform")
@@ -120,10 +120,10 @@ endif()
 
 set(source_files
   # threading
-  src/bit/platform/threading/serial_task_scheduler.cpp
-  src/bit/platform/threading/concurrent_task_scheduler.cpp
-  src/bit/platform/threading/task.cpp
-  src/bit/platform/threading/spin_lock.cpp
+  src/bit/platform/concurrency/schedulers/serial_task_scheduler.cpp
+  src/bit/platform/concurrency/schedulers/concurrent_task_scheduler.cpp
+  src/bit/platform/concurrency/schedulers/task.cpp
+  src/bit/platform/concurrency/primitives/spin_lock.cpp
 
   # filesystem
   # src/bit/platform/filesystem/filesystem.cpp
