@@ -62,6 +62,7 @@ set(headers
   include/bit/platform/threading/concurrent_task_scheduler.hpp
   include/bit/platform/threading/serial_task_scheduler.hpp
   include/bit/platform/threading/task.hpp
+  include/bit/platform/threading/task_scheduler.hpp
   include/bit/platform/threading/null_mutex.hpp
   include/bit/platform/threading/semaphore.hpp
   include/bit/platform/threading/shared_mutex.hpp
