@@ -224,30 +224,4 @@ bit::stl::invoke_result_t<Fn,Args...>
                                   std::forward<Args>(args)... );
 }
 
-//-----------------------------------------------------------------------------
-// This Dispatcher Free Functions
-//-----------------------------------------------------------------------------
-
-template<typename Fn, typename...Args, typename>
-inline void bit::platform::this_serial_task_scheduler::post( Fn&& fn,
-                                                             Args&&...args )
-{
-  auto task = make_task( std::forward<Fn>(fn), std::forward<Args>(args)... );
-
-  post_task( std::move(task) );
-}
-
-
-template<typename Fn, typename...Args, typename>
-inline void bit::platform::this_serial_task_scheduler::post( const task& parent,
-                                                             Fn&& fn,
-                                                             Args&&...args )
-{
-  auto task = make_task( parent,
-                         std::forward<Fn>(fn),
-                         std::forward<Args>(args)... );
-
-  post_task( std::move(task) );
-}
-
 #endif /* BIT_THREAD_DETAIL_SERIAL_TASK_SCHEDULER_INL */

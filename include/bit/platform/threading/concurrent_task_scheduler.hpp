@@ -289,35 +289,6 @@ namespace bit {
       post_and_wait( concurrent_task_scheduler& concurrent_task_scheduler,
                      const task& parent, Fn&& fn, Args&&...args );
     /// \}
-
-    //-------------------------------------------------------------------------
-
-    /// \brief This namespace is used to dispatch functions to the currently
-    ///        active concurrent_task_scheduler without requiring passing the concurrent_task_scheduler as
-    ///        the active argument
-    namespace this_concurrent_task_scheduler {
-
-      /// \brief Posts a task for execution to the active concurrent_task_scheduler
-      ///
-      /// \param task the task to dispatch
-      void post_task( task task );
-
-      //-----------------------------------------------------------------------
-
-      /// \{
-      /// \brief Creates and posts a task to the specified \p concurrent_task_scheduler
-      ///
-      /// \param concurrent_task_scheduler the concurrent_task_scheduler to post the task to
-      /// \param parent the parent task
-      /// \param fn the function to invoke
-      /// \param args the arguments to forward to \p fn
-      template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
-      void post( Fn&& fn, Args&&...args );
-      template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
-      void post( const task& parent, Fn&& fn, Args&&...args );
-      /// \}
-
-    } // namespace this_concurrent_task_scheduler
   } // namespace thread
 } // namespace bit
 

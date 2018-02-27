@@ -218,39 +218,6 @@ namespace bit {
       post_and_wait( serial_task_scheduler& queue,
                      const task& parent, Fn&& fn, Args&&...args );
     /// \}
-
-    //-------------------------------------------------------------------------
-
-    /// \brief This namespace is used to dispatch functions to the currently
-    ///        active serial_task_scheduler without requiring passing the queue
-    ///        as the active argument
-    namespace this_serial_task_scheduler {
-
-      /// \brief Posts a task for execution to the active serial_task_scheduler
-      ///
-      /// \param task the task to dispatch
-      void post_task( task task );
-
-      /// \brief Waits for the task based on the handle
-      ///
-      /// \param task the handle to wait for
-      void wait( task_handle task );
-
-      //-----------------------------------------------------------------------
-
-      /// \{
-      /// \brief Creates and posts a task to the specified \p queue
-      ///
-      /// \param parent the parent task
-      /// \param fn the function to invoke
-      /// \param args the arguments to forward to \p fn
-      template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
-      void post( Fn&& fn, Args&&...args );
-      template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
-      void post( const task& parent, Fn&& fn, Args&&...args );
-      /// \}
-
-    } // namespace this_serial_task_scheduler
   } // namespace platform
 } // namespace bit
 

@@ -135,25 +135,3 @@ void bit::platform::wait( serial_task_scheduler& scheduler, task_handle task )
 {
   scheduler.wait( task );
 }
-
-//-----------------------------------------------------------------------------
-// This Dispatch Queue : Free Functions
-//-----------------------------------------------------------------------------
-
-void bit::platform::this_serial_task_scheduler::post_task( task task )
-{
-  assert( g_this_serial_scheduler != nullptr &&
-          "post_task can only be called in an active scheduler" );
-
-  auto& scheduler = *g_this_serial_scheduler;
-  scheduler.post_task( std::move(task) );
-}
-
-void bit::platform::this_serial_task_scheduler::wait( task_handle task )
-{
-  assert( g_this_serial_scheduler != nullptr &&
-          "wait can only be called in an active scheduler" );
-
-  auto& scheduler = *g_this_serial_scheduler;
-  scheduler.wait( task );
-}

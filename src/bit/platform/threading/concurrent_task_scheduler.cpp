@@ -280,15 +280,6 @@ void bit::platform::wait( concurrent_task_scheduler& scheduler, task_handle task
 // This Dispatcher : Free Functions
 //-----------------------------------------------------------------------------
 
-void bit::platform::this_concurrent_task_scheduler::post_task( task task )
-{
-  assert( g_this_concurrent_task_scheduler &&
-         "post_task can only be called in a scheduler's task queue" );
-
-  auto& scheduler = *g_this_concurrent_task_scheduler;
-  scheduler.post_task( std::move(task) );
-}
-
 namespace {
 
   std::ptrdiff_t generate_number_in_range( std::ptrdiff_t low,
