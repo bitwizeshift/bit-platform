@@ -67,10 +67,12 @@ namespace bit {
 
 #if defined(__MACH__)
       using native_handle_type = semaphore_t; ///< Semaphore type for mac
-#elif defined(__unix__)
+#elif defined(__unix__) || defined(__unix)
       using native_handle_type = sem_t; ///< Semaphore type for *nix
-#else
+#elif defined(_WIN32) || defined(_WIN64)
       using native_handle_type = void*; ///< Semaphore type for windows
+#else
+# error Operating system not detected or not properly supported
 #endif
 
       //----------------------------------------------------------------------
