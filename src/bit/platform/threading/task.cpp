@@ -1,15 +1,26 @@
 #include <bit/platform/threading/task.hpp>
-#include <array> // std::array
+
+#include <array>   // std::array
+#include <atomic>  // std::atomic
+#include <cstddef> // std::abort
+
+namespace {
+
+  [[noreturn]]
+  void default_out_of_task_handler()
+  {
+    std::abort();
+  }
+
+  using atomic_out_of_task_handler_type = std::atomic<bit::platform::out_of_task_handler_t>;
+
+  atomic_out_of_task_handler_type g_out_of_task_handler{&::default_out_of_task_handler};
+
+} // anonymous namespace
 
 //=============================================================================
 // Private Detail Function
 //=============================================================================
-
-namespace {
-
-  thread_local const bit::platform::task* g_this_task = nullptr;
-
-} // anonymous namespace
 
 void* bit::platform::detail::allocate_task()
 {
@@ -21,30 +32,24 @@ void* bit::platform::detail::allocate_task()
   // If there are any unfinished tasks in the task being allocated, it means that
   // we have allocated more than max_tasks worth of tasks -- and that the previous
   // task has not yet completed.
-  assert( j->m_unfinished == 0 && "too many tasks allocated; buffer overflow occurred" );
+  if( j->m_unfinished != 0 ) {
+    (*get_out_of_task_handler())();
+  }
 
   return j;
 }
 
-const bit::platform::task* bit::platform::detail::get_active_task() noexcept
-{
-  return g_this_task;
-}
-
-void bit::platform::detail::set_active_task( const task* j ) noexcept
-{
-  g_this_task = j;
-}
-
-//=============================================================================
-// Free Functions
-//=============================================================================
-
 //-----------------------------------------------------------------------------
-// Utilities
+// Handlers
 //-----------------------------------------------------------------------------
 
-const bit::platform::task* bit::platform::this_task() noexcept
+bit::platform::out_of_task_handler_t
+  bit::platform::set_out_of_task_handler( out_of_task_handler_t f )
 {
-  return g_this_task;
+  return ::g_out_of_task_handler.exchange( f ? f : &::default_out_of_task_handler );
+}
+
+bit::platform::out_of_task_handler_t bit::platform::get_out_of_task_handler()
+{
+  return ::g_out_of_task_handler.load();
 }

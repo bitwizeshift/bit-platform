@@ -12,7 +12,7 @@
 
 #include <bit/stl/utilities/invoke.hpp> // stl::invoke
 
-#include "true_share.hpp" // true_share
+#include "true_share.hpp" // cache_line_size
 
 #include <atomic>  // std::atomic
 #include <cassert> // assert
@@ -21,26 +21,19 @@
 #include <memory>  // std::align, std::unique_ptr
 #include <new>     // placement-new
 #include <tuple>   // std::tuple
-#include <utility> // std::index_sequence
+#include <utility> // std::index_sequence, std::move, std::forward, std::swap
 
 namespace bit {
   namespace platform {
 
     class task;
+
     namespace detail {
 
       /// \brief Allocates a task
       ///
       /// \return the pointer to the allocated task
       void* allocate_task();
-
-      /// \brief Gets the active task for this thread
-      ///
-      /// \return the currently active task
-      const task* get_active_task() noexcept;
-
-      /// \brief Sets the currently active task for this thread
-      void set_active_task( const task* j ) noexcept;
 
       template<typename T>
       std::decay_t<T> decay_copy( T&& v ) { return std::forward<T>(v); }
@@ -57,12 +50,15 @@ namespace bit {
     ///////////////////////////////////////////////////////////////////////////
     class task
     {
-      //---------------------------------------------------------------------
+      //----------------------------------------------------------------------
       // Public Static Members
-      //---------------------------------------------------------------------
+      //----------------------------------------------------------------------
     public:
 
+      // TODO(bitwizeshift): Make this configurable from a configure file
       static constexpr auto max_tasks = 4096u;
+
+      // TODO(bitwizeshift): Make size of each task storage configurable
 
       //-----------------------------------------------------------------------
       // Constructors / Assignment / Destructor
@@ -86,12 +82,17 @@ namespace bit {
 
       /// \brief Constructs a task that is spawned as a sub-task of \p parent
       ///
+      /// \pre parent is non-null task
+      ///
       /// \param parent the parent task
       /// \param fn the function to invoke
       /// \param args the arguments to forward to the function
       template<typename Fn, typename...Args,
                typename=std::enable_if_t<stl::is_invocable<Fn,Args...>::value>>
       explicit task( const task& parent, Fn&& fn, Args&&...args );
+
+      // TODO(bitwizeshift): Add allocator support for tasks that contain a
+      //                     large storage space
 
       /// \brief Move-constructs this task from an existing task
       ///
@@ -112,10 +113,7 @@ namespace bit {
       ///
       /// \param other the task to move
       /// \return reference to \c (*this)
-      task& operator=( task&& other );
-
-      // Deleted copy assignment
-      task& operator=( const task& other ) = delete;
+      task& operator=( task other );
 
       //-----------------------------------------------------------------------
       // Observers
@@ -136,12 +134,40 @@ namespace bit {
       bool available() const noexcept;
 
       //-----------------------------------------------------------------------
+      // Modifiers
+      //-----------------------------------------------------------------------
+    public:
+
+      /// \brief Swaps this task with \p other
+      ///
+      /// \post \p other contains the contents of \c this, and \c this contains
+      ///       the old contents of \p other
+      ///
+      /// \param other the other entry to swap with
+      void swap( task& other ) noexcept;
+
+      //-----------------------------------------------------------------------
       // Execution
       //-----------------------------------------------------------------------
     public:
 
       /// \brief Executes this task using the stored arguments
+      ///
+      /// It is undefined behavior for the task to be invoked when null, or if
+      /// it is not yet available (e.g. has child jobs that have not yet
+      /// finished executing)
+      ///
+      /// \pre task must not be null
+      ///
+      /// \pre \c available() must return \c true
+      ///
+      /// \note Executing a task more than once is generally considered bad
+      ///       practice, and may not yield appropriate behavior since tasks
+      ///       are intended to form a proper ordering.
       void execute() const;
+
+      /// \copydoc execute
+      void operator()() const;
 
       //-----------------------------------------------------------------------
       // Conversions
@@ -156,12 +182,15 @@ namespace bit {
       //-----------------------------------------------------------------------
     private:
 
-      detail::task_storage* m_task;
+      detail::task_storage* m_task; ///< The underlying task data
 
+      // Friendships
       friend bool operator==( const task&, const task& ) noexcept;
-
       friend class task_handle;
     };
+
+    static_assert( sizeof(task)<=sizeof(void*),
+                   "Task must be at most the size of a single pointer" );
 
     //-------------------------------------------------------------------------
     // Equality
@@ -181,11 +210,14 @@ namespace bit {
     // Utilities
     //-------------------------------------------------------------------------
 
-    /// \brief Gets the currently active task, if a task is being processed.
-    ///        Otherwise this returns \c nullptr
+    /// \brief Swaps the contents of \p lhs with \p rhs
     ///
-    /// \return the active task, or nullptr
-    const task* this_task() noexcept;
+    /// \post \p lhs contains the old contents of \p rhs, and \p rhs contains
+    ///       the old contents of \p lhs
+    ///
+    /// \param lhs the left task to swap
+    /// \param rhs the right task to swap
+    void swap( task& lhs, task& rhs ) noexcept;
 
     //-------------------------------------------------------------------------
 
@@ -200,16 +232,38 @@ namespace bit {
     task make_task( Fn&& fn, Args&&...args );
     template<typename Fn, typename...Args>
     task make_task( const task& parent, Fn&& fn, Args&&...args );
-    template<typename Fn, typename...Args>
-    task make_task( std::nullptr_t, Fn&&, Args&&... ) = delete;
     /// \}
+
+    //-------------------------------------------------------------------------
+    // Handler Type
+    //-------------------------------------------------------------------------
+
+    /// \brief Handler for managing out-of-task error condition
+    using out_of_task_handler_t = void(*)();
+
+    //-------------------------------------------------------------------------
+    // Handlers
+    //-------------------------------------------------------------------------
+
+    /// \brief Sets the global out-of-task handler.
+    ///
+    /// This handler will be called if too many tasks are allocated from a
+    /// single thread.
+    ///
+    /// \param f the function handler
+    /// \return the previous handler
+    out_of_task_handler_t set_out_of_task_handler( out_of_task_handler_t f );
+
+    /// \brief Gets the current active out-of-task handler
+    ///
+    /// \return the current handler
+    out_of_task_handler_t get_out_of_task_handler();
 
     ///////////////////////////////////////////////////////////////////////////
     /// \brief A non-owning handle that refers to a given \ref task
     ///
     /// A task_handle can be used to wait on a task that has already been posted
-    /// to a given dispatching mechanism, or it can be used
-    ///
+    /// to a given scheduling mechanism, or it can be used
     ///////////////////////////////////////////////////////////////////////////
     class task_handle
     {
@@ -218,18 +272,36 @@ namespace bit {
       //-----------------------------------------------------------------------
     public:
 
+      /// \brief Default-constructs a task handle pointing to a null task
       task_handle() noexcept;
 
+      /// \brief Constructs a task-handle that points to a \p task
+      ///
+      /// \param task the task to point to
       task_handle( const task& task ) noexcept;
 
+      /// \brief Copy-constructs a task handle from an existing handle
+      ///
+      /// \param other the other handle to copy
       task_handle( const task_handle& other ) noexcept = default;
 
+      /// \brief Move-constructs a task handle from an existing handle
+      ///
+      /// \param other the other handle to move
       task_handle( task_handle&& other ) noexcept = default;
 
       //-----------------------------------------------------------------------
 
+      /// \brief Copy-assigns a task handle from an existing handle
+      ///
+      /// \param other the other task handle to copy
+      /// \return reference to \c (*this)
       task_handle& operator=( const task_handle& other ) noexcept = default;
 
+      /// \brief Move-assigns a task handle from an existing handle
+      ///
+      /// \param other the other task handle to move
+      /// \return reference to \c (*this)
       task_handle& operator=( task_handle&& other ) noexcept = default;
 
       //-----------------------------------------------------------------------

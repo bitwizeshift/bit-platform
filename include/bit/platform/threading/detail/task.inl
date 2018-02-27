@@ -4,11 +4,10 @@
 namespace bit { namespace platform { namespace detail {
 
 ///////////////////////////////////////////////////////////////////////////////
-/// \brief A task is the unit of dispatch used in the task_system
+/// \brief The internal storage for a given task in the task system
 ///
-/// \note A task may only ever be executed exactly once; executing a task
-///       more than once is undefined behaviour. This is best left up to
-///       the dispatcher system for the task.
+/// This class must satisfy TriviallyDestructible in order to properly be
+/// reused by the task allocators.
 ///////////////////////////////////////////////////////////////////////////////
 class alignas(cache_line_size()) task_storage
 {
@@ -47,8 +46,7 @@ public:
   //---------------------------------------------------------------------------
 public:
 
-  /// \brief Detaches the current active task to run indefinitely in the
-  ///        background
+  /// \brief Invokes the underlying task with the given arguments
   void execute() const;
 
   //---------------------------------------------------------------------------
@@ -252,7 +250,8 @@ private:
 // the task class must be trivially destructible, since this is the primary
 // storage used for allocating thread-safe tasks, and destructors are never
 // called before reconstructions.
-static_assert( std::is_trivially_destructible<bit::platform::detail::task_storage>::value, "task_storage must be trivially destructible!");
+static_assert( std::is_trivially_destructible<bit::platform::detail::task_storage>::value,
+               "task_storage must be trivially destructible!");
 
 //=============================================================================
 // task_storage
@@ -284,7 +283,9 @@ bit::platform::detail::task_storage::task_storage( Fn&& fn, Args&&...args )
 //-----------------------------------------------------------------------------
 
 template<typename Fn, typename...Args>
-bit::platform::detail::task_storage::task_storage( task_storage* parent, Fn&& fn, Args&&...args )
+bit::platform::detail::task_storage::task_storage( task_storage* parent,
+                                                   Fn&& fn,
+                                                   Args&&...args )
   : m_parent(parent),
     m_function(&function<std::decay_t<Fn>,std::decay_t<Args>...>),
     m_destructor(&destruct_function<std::decay_t<Fn>,std::decay_t<Args>...>),
@@ -399,7 +400,8 @@ void bit::platform::detail::task_storage::function( void* padding )
 }
 
 template<typename Tuple, std::size_t...Idxs>
-void bit::platform::detail::task_storage::function_inner( Tuple&& tuple, std::index_sequence<Idxs...> )
+void bit::platform::detail::task_storage::function_inner( Tuple&& tuple,
+                                                          std::index_sequence<Idxs...> )
 {
   stl::invoke( std::get<Idxs>( std::forward<Tuple>(tuple) )... );
 }
@@ -436,14 +438,14 @@ void bit::platform::detail::task_storage::destruct_function( void* padding )
 
 template<typename...Types>
 void bit::platform::detail::task_storage::destruct_args( storage_type&,
-                                                      std::true_type )
+                                                         std::true_type )
 {
   // trivially destructible
 }
 
 template<typename...Types>
 void bit::platform::detail::task_storage::destruct_args( storage_type& storage,
-                                                      std::false_type )
+                                                         std::false_type )
 {
   destroy( storage.get<Types...>() );
 }
@@ -489,7 +491,6 @@ inline std::tuple<Ts...>& bit::platform::detail::task_storage::storage_type::get
   return *static_cast<std::tuple<Ts...>*>( m_ptr );
 }
 
-
 //=============================================================================
 // task
 //=============================================================================
@@ -510,7 +511,7 @@ inline bit::platform::task::task( Fn&& fn, Args&&...args )
   : m_task(static_cast<detail::task_storage*>(detail::allocate_task()))
 {
   new (m_task) detail::task_storage( std::forward<Fn>(fn),
-                                   std::forward<Args>(args)... );
+                                     std::forward<Args>(args)... );
 }
 
 
@@ -518,9 +519,11 @@ template<typename Fn, typename...Args, typename>
 inline bit::platform::task::task( const task& parent, Fn&& fn, Args&&...args )
   : m_task(static_cast<detail::task_storage*>(detail::allocate_task()))
 {
+  assert( parent.m_task != nullptr && "parent task cannot refer to null task" );
+
   new (m_task) detail::task_storage( parent.m_task,
-                                   std::forward<Fn>(fn),
-                                   std::forward<Args>(args)... );
+                                     std::forward<Fn>(fn),
+                                     std::forward<Args>(args)... );
 }
 
 inline bit::platform::task::task( task&& other )
@@ -529,7 +532,6 @@ inline bit::platform::task::task( task&& other )
 {
   other.m_task = nullptr;
 }
-
 
 //-----------------------------------------------------------------------------
 
@@ -541,12 +543,9 @@ inline bit::platform::task::~task()
 
 //-----------------------------------------------------------------------------
 
-inline bit::platform::task& bit::platform::task::operator=( task&& other )
+inline bit::platform::task& bit::platform::task::operator=( task other )
 {
-  if( m_task ) m_task->finalize();
-
-  m_task = other.m_task;
-  other.m_task = nullptr;
+  swap(other);
 
   return (*this);
 }
@@ -569,24 +568,42 @@ inline bool bit::platform::task::available()
 }
 
 //-----------------------------------------------------------------------------
+// Modifiers
+//-----------------------------------------------------------------------------
+
+inline void bit::platform::task::swap( task& other )
+  noexcept
+{
+  using std::swap;
+
+  swap(m_task,other.m_task);
+}
+
+//-----------------------------------------------------------------------------
 // Execution
 //-----------------------------------------------------------------------------
 
-inline void bit::platform::task::execute() const
+inline void bit::platform::task::execute()
+  const
 {
   assert( m_task && "execute can only be called on non-null tasks" );
+  assert( available() && "task may only be executed when available" );
 
-  auto old = detail::get_active_task();
-  detail::set_active_task(this);
   m_task->execute();
-  detail::set_active_task(old);
+}
+
+inline void bit::platform::task::operator()()
+  const
+{
+  execute();
 }
 
 //-----------------------------------------------------------------------------
 // Conversions
 //-----------------------------------------------------------------------------
 
-inline bit::platform::task::operator bool() const noexcept
+inline bit::platform::task::operator bool()
+  const noexcept
 {
   return m_task != nullptr;
 }
@@ -641,6 +658,15 @@ inline bool bit::platform::operator!=( const task& lhs, const task& rhs )
 // Utilities
 //-----------------------------------------------------------------------------
 
+inline void bit::platform::swap( task& lhs, task& rhs )
+  noexcept
+{
+  lhs.swap(rhs);
+}
+
+//-----------------------------------------------------------------------------
+
+
 template<typename Fn, typename...Args>
 inline bit::platform::task
   bit::platform::make_task( Fn&& fn, Args&&...args )
@@ -691,7 +717,7 @@ inline bool bit::platform::task_handle::completed()
 inline bool bit::platform::task_handle::available()
   const noexcept
 {
-  return m_task ? m_task->available() : true;
+  return m_task ? m_task->available() : false;
 }
 
 #endif /* BIT_PLATFORM_THREADING_DETAIL_TASK_INL */
