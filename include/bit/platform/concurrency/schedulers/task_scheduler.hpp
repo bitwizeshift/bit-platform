@@ -15,6 +15,7 @@
 #include <type_traits> // std::enable_if
 #include <utility>     // std::forward
 #include <mutex>       // std::mutex
+#include <cassert>     // assert
 
 namespace bit {
   namespace platform {
@@ -201,13 +202,14 @@ namespace bit {
       virtual ~task_scheduler() = 0;
 
       //-----------------------------------------------------------------------
-      // Posting (virtual)
+      // Posting / Waiting (virtual)
       //-----------------------------------------------------------------------
-    protected:
-
-      virtual void do_post_task( task task ) = 0;
-
     public:
+
+      /// \brief Posts a given task \p task
+      ///
+      /// \param task the task to post
+      virtual void post_task( task task ) = 0;
 
       /// \brief Waits for a given task to complete
       ///
@@ -218,13 +220,6 @@ namespace bit {
       // Posting / Waiting
       //-----------------------------------------------------------------------
     public:
-
-      /// \brief Posts a given task \p t
-      ///
-      /// \param task the task to post
-      void post_task( task task );
-
-      //-----------------------------------------------------------------------
 
       /// \{
       /// \brief Posts a given function \p fn with the specified arguments
@@ -283,6 +278,16 @@ namespace bit {
       template<typename Allocator, typename T>
       bound_object<T> allocate_bound_object( const Allocator& allocator,
                                              T& object );
+
+      //-----------------------------------------------------------------------
+      // Protected Execution
+      //-----------------------------------------------------------------------
+    protected:
+
+      /// \brief Executes a given task
+      ///
+      /// \param task the task to execute
+      void execute_task( task task );
 
       //-----------------------------------------------------------------------
       // Private Static Members

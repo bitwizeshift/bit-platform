@@ -174,16 +174,6 @@ inline bit::platform::task_scheduler::~task_scheduler() = default;
 // Posting / Waiting
 //-----------------------------------------------------------------------------
 
-inline void bit::platform::task_scheduler::post_task( task task )
-{
-  auto old = g_active_scheduler;
-  g_active_scheduler = this;
-  do_post_task( std::move(task) );
-  g_active_scheduler = old;
-}
-
-//-----------------------------------------------------------------------------
-
 template<typename Fn, typename...Args, typename>
 inline void bit::platform::task_scheduler::post( Fn&& fn, Args&&...args )
 {
@@ -249,6 +239,16 @@ inline bit::platform::task_scheduler::bound_object<T>
                                                         T& object )
 {
   return bound_object<T>{ allocator, object };
+}
+
+inline void bit::platform::task_scheduler::execute_task( task task )
+{
+  assert( task.available() && "Task must be available" );
+
+  auto old = g_active_scheduler;
+  g_active_scheduler = this;
+  task.execute();
+  g_active_scheduler = old;
 }
 
 //-----------------------------------------------------------------------------

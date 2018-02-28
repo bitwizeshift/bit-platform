@@ -37,7 +37,6 @@ namespace {
   //---------------------------------------------------------------------------
 
   thread_local std::ptrdiff_t     g_thread_index = 0;
-  thread_local bit::platform::concurrent_task_scheduler* g_this_concurrent_task_scheduler = nullptr;
 
 } // namespace anonymous
 
@@ -80,7 +79,6 @@ bit::platform::concurrent_task_scheduler::concurrent_task_scheduler( assign_affi
 : m_running(false),
   m_set_affinity(true),
   m_running_threads(0)
-
 {
   m_threads.resize(threads);
   m_queues.resize(threads+1);
@@ -146,7 +144,6 @@ void bit::platform::concurrent_task_scheduler::start()
   if( m_owner == std::thread::id() ) {
     m_owner = std::this_thread::get_id();
     g_thread_index = 0;
-    g_this_concurrent_task_scheduler = this;
   }
 
   assert( m_owner == std::this_thread::get_id() &&
@@ -183,7 +180,6 @@ std::thread bit::platform::concurrent_task_scheduler::make_worker_thread( std::p
     }
 
     g_thread_index = index;
-    g_this_concurrent_task_scheduler = this;
 
     ++m_running_threads;
     do_work();
@@ -201,8 +197,8 @@ bit::platform::task bit::platform::concurrent_task_scheduler::get_task()
 {
   auto& queue = *m_queues[g_thread_index];
 
-  auto j = queue.pop();
-  if( j ) return j;
+  auto t = queue.pop();
+  if( t ) return t;
 
   const auto max    = static_cast<std::ptrdiff_t>(m_queues.size()) - 1;
   const auto victim = generate_number_in_range(0, max);
@@ -216,15 +212,15 @@ bit::platform::task bit::platform::concurrent_task_scheduler::get_task()
   }
 
   // Attempt to steal a task
-  j = steal_queue.steal();
+  t = steal_queue.steal();
 
   // If task is not stolen, yield processor time
-  if( !j ) {
+  if( !t ) {
     std::this_thread::yield();
     return task{};
   }
 
-  return j;
+  return t;
 }
 
 void bit::platform::concurrent_task_scheduler::push_task( task task )
@@ -235,22 +231,23 @@ void bit::platform::concurrent_task_scheduler::push_task( task task )
 }
 
 template<typename Condition>
-void bit::platform::concurrent_task_scheduler::help_while( Condition&& condition )
+inline void bit::platform::concurrent_task_scheduler
+  ::help_while( Condition&& condition )
 {
   while( std::forward<Condition>(condition)() ) {
-    auto j = get_task();
+    auto task = get_task();
 
-    if( j ) {
-      help_while_unavailable( j );
+    if( !task ) continue;
 
-      j.execute();
-    }
+    help_while_unavailable( task );
+    task_scheduler::execute_task( std::move(task) );
   }
 }
 
-void bit::platform::concurrent_task_scheduler::help_while_unavailable( const task& j )
+void bit::platform::concurrent_task_scheduler
+  ::help_while_unavailable( const task& task )
 {
-  help_while( [&]{ return !j.available(); } );
+  help_while( [&]{ return !task.available(); } );
 }
 
 void bit::platform::concurrent_task_scheduler::do_work()
@@ -260,20 +257,6 @@ void bit::platform::concurrent_task_scheduler::do_work()
   // This duplication is to avoid breaking cache coherency per iteration
   // in the normal running case.
   help_while( [&]{ return !m_queues[g_thread_index]->empty(); } );
-}
-
-//-----------------------------------------------------------------------------
-// Free Functions
-//-----------------------------------------------------------------------------
-
-void bit::platform::post_task( concurrent_task_scheduler& scheduler, task task )
-{
-  scheduler.post_task( std::move(task) );
-}
-
-void bit::platform::wait( concurrent_task_scheduler& scheduler, task_handle task )
-{
-  scheduler.wait(task);
 }
 
 //-----------------------------------------------------------------------------

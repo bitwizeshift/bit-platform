@@ -2,8 +2,8 @@
 #include <random> // std::random_device, sdt::uniform_distribution, etc
 #include <memory> // std::unique_ptr
 #include <vector> // std::vector
-
 #include <cassert> // assert
+#include <utility> // std::forward
 
 #include "detail/task_queue.hpp" // detail::task_queue
 
@@ -72,14 +72,6 @@ void bit::platform::serial_task_scheduler::stop()
   m_worker.thread.join();
 }
 
-void bit::platform::serial_task_scheduler::wait( task_handle task )
-{
-  // wait until task is completed
-  std::mutex mutex;
-  std::unique_lock<std::mutex> lock(mutex);
-
-  m_cv.wait(lock, [&]{ return task.completed(); });
-}
 
 //-----------------------------------------------------------------------------
 
@@ -88,6 +80,16 @@ void bit::platform::serial_task_scheduler::post_task( task task )
   if( !m_is_running ) return;
 
   m_worker.task_queue->push( std::move(task) );
+  m_cv.notify_one();
+}
+
+void bit::platform::serial_task_scheduler::wait( task_handle task )
+{
+  // wait until task is completed
+  std::mutex mutex;
+  std::unique_lock<std::mutex> lock(mutex);
+
+  m_cv.wait(lock, [&]{ return task.completed(); });
 }
 
 //-----------------------------------------------------------------------------
@@ -106,13 +108,14 @@ void bit::platform::serial_task_scheduler::run()
       m_cv.wait(lock, [&]{ return !m_is_running || !m_worker.task_queue->empty(); });
     }
 
+    // Check condition for breaking above lock
     if( !m_is_running && m_worker.task_queue->empty() ) break;
 
-    auto j = get_task();
+    auto task = get_task();
 
-    assert( j != nullptr );
+    assert( task != nullptr );
 
-    j.execute();
+    task_scheduler::execute_task( std::move(task) );
     m_cv.notify_all();
   }
 }
@@ -120,18 +123,4 @@ void bit::platform::serial_task_scheduler::run()
 bit::platform::task bit::platform::serial_task_scheduler::get_task()
 {
   return m_worker.task_queue->steal();
-}
-
-//-----------------------------------------------------------------------------
-// Free Functions
-//-----------------------------------------------------------------------------
-
-void bit::platform::post_task( serial_task_scheduler& scheduler, task task )
-{
-  scheduler.post_task( std::move(task) );
-}
-
-void bit::platform::wait( serial_task_scheduler& scheduler, task_handle task )
-{
-  scheduler.wait( task );
 }

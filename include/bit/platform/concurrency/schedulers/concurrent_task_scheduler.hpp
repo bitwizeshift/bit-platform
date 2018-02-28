@@ -10,15 +10,15 @@
 #define BIT_PLATFORM_CONCURRENCY_SCHEDULERS_CONCURRENT_TASK_SCHEDULER_HPP
 
 #include "task.hpp" // task
-#include <bit/stl/utilities/invoke.hpp>
+#include "task_scheduler.hpp" // task_scheduler
 
-#include <cstdlib> // std::size_t
 #include <atomic>  // std::atomic
-#include <thread>  // std::thread
-#include <mutex>   // std::mutex
+#include <cstdlib> // std::size_t
 #include <condition_variable> // std::condition_variable
+#include <mutex>   // std::mutex
+#include <thread>  // std::thread
 #include <vector>  // std::vector
-#include <tuple>   // std::tuple
+#include <utility> // std::forward
 
 namespace bit {
   namespace platform {
@@ -45,7 +45,7 @@ namespace bit {
     ///       from the main message pump) is allowed to stop or destroy this
     ///       concurrent_task_scheduler.
     ///////////////////////////////////////////////////////////////////////////
-    class concurrent_task_scheduler
+    class concurrent_task_scheduler : public task_scheduler
     {
       //-----------------------------------------------------------------------
       // Constructors / Destructor / Assignment
@@ -99,7 +99,7 @@ namespace bit {
 
       /// \brief Runs this task_concurrent_task_scheduler, invoking \p fn each iteration
       ///
-      /// \note The calling thread becomes a worker_thread that invkes \p fn
+      /// \note The calling thread becomes a worker_thread that invokes \p fn
       ///       before attempting to do work with tasks. Care should be taken
       ///       to not exhaust task input and starve the worker threads;
       ///       otherwise the system may never return.
@@ -121,41 +121,14 @@ namespace bit {
       /// for \p task to complete.
       ///
       /// \param task the task to wait for
-      void wait( task_handle task );
+      void wait( task_handle task ) override;
 
       //-----------------------------------------------------------------------
-
-      /// \{
-      /// \brief Posts a task in this concurrent_task_scheduler
-      ///
-      /// \param parent the parent task
-      /// \param fn the function to dispatch
-      /// \param args the arguments to forward to the function
-      template<typename Fn, typename...Args>
-      void post( Fn&& fn, Args&&...args );
-      template<typename Fn, typename...Args>
-      void post( const task& parent, Fn&& fn, Args&&...args );
-      /// \}
 
       /// \brief Posts a task in this concurrent_task_scheduler
       ///
       /// \param task the task to post
-      void post_task( task task );
-
-      /// \{
-      /// \brief Posts a task in this concurrent_task_scheduler, waiting for the result
-      ///
-      /// \param parent the parent task
-      /// \param fn the function to dispatch
-      /// \param args the arguments to forward to the function
-      /// \return the result of the function
-      template<typename Fn, typename...Args>
-      stl::invoke_result_t<Fn,Args...>
-        post_and_wait( Fn&& fn, Args&&...args );
-      template<typename Fn, typename...Args>
-      stl::invoke_result_t<Fn,Args...>
-        post_and_wait( const task& parent, Fn&& fn, Args&&...args );
-      /// \}
+      void post_task( task task ) override;
 
       //-----------------------------------------------------------------------
       // Private Members
@@ -234,61 +207,7 @@ namespace bit {
       void do_work();
     };
 
-    //-------------------------------------------------------------------------
-    // Free Functions
-    //-------------------------------------------------------------------------
-
-    /// \brief Posts a task for execution to \p concurrent_task_scheduler
-    ///
-    /// \param concurrent_task_scheduler the concurrent_task_scheduler to post the task to
-    /// \param task the task to dispatch
-    void post_task( concurrent_task_scheduler& concurrent_task_scheduler, task task );
-
-    /// \brief Waits for the task based on the handle
-    ///
-    /// \param concurrent_task_scheduler the concurrent_task_scheduler to wait on
-    /// \param task the handle to wait for
-    void wait( concurrent_task_scheduler& concurrent_task_scheduler, task_handle task );
-
-    //-------------------------------------------------------------------------
-
-    /// \{
-    /// \brief Creates and posts a task to the specified \p concurrent_task_scheduler
-    ///
-    /// \param concurrent_task_scheduler the concurrent_task_scheduler to post the task to
-    /// \param parent the parent task
-    /// \param fn the function to invoke
-    /// \param args the arguments to forward to \p fn
-    template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
-    void post( concurrent_task_scheduler& concurrent_task_scheduler, Fn&& fn, Args&&...args );
-    template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
-    void post( concurrent_task_scheduler& concurrent_task_scheduler,
-               const task& parent, Fn&& fn, Args&&...args );
-    /// \}
-
-    //-------------------------------------------------------------------------
-
-    /// \{
-    /// \brief Creates, posts, and waits for the completion of a specified
-    ///        task.
-    ///
-    /// This makes the result appear synchronous, despite the fact that it
-    /// may be invoked on a different thread.
-    ///
-    /// \param concurrent_task_scheduler the concurrent_task_scheduler to post the task to
-    /// \param parent the parent task
-    /// \param fn the function to invoke
-    /// \param args the arguments to forward to \p fn
-    /// \return the result of the invocation
-    template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
-    stl::invoke_result_t<Fn,Args...>
-      post_and_wait( concurrent_task_scheduler& concurrent_task_scheduler, Fn&& fn, Args&&...args );
-    template<typename Fn, typename...Args, typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
-    stl::invoke_result_t<Fn,Args...>
-      post_and_wait( concurrent_task_scheduler& concurrent_task_scheduler,
-                     const task& parent, Fn&& fn, Args&&...args );
-    /// \}
-  } // namespace thread
+  } // namespace platform
 } // namespace bit
 
 #include "detail/concurrent_task_scheduler.inl"

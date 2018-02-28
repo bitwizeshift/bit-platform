@@ -9,15 +9,14 @@
 #ifndef BIT_PLATFORM_CONCURRENCY_SCHEDULERS_SERIAL_TASK_SCHEDULER_HPP
 #define BIT_PLATFORM_CONCURRENCY_SCHEDULERS_SERIAL_TASK_SCHEDULER_HPP
 
-#include "task.hpp" // task
-
-#include <bit/stl/utilities/invoke.hpp>
+#include "task.hpp"           // task
+#include "task_scheduler.hpp" // task_scheduler
 
 #include <atomic>  // std::atomic<bool>
 #include <condition_variable> // std::condition_variable
+#include <memory>  // std::unique_ptr
 #include <mutex>   // std::mutex
 #include <thread>  // std::thread
-#include <utility> // std::forward
 
 namespace bit {
   namespace platform {
@@ -31,7 +30,7 @@ namespace bit {
     ///
     /// Posting a task is thread-safe, and may be done from any thread.
     ///////////////////////////////////////////////////////////////////////////
-    class serial_task_scheduler
+    class serial_task_scheduler final : public task_scheduler
     {
       //-----------------------------------------------------------------------
       // Constructors / Destructor / Assignment
@@ -76,47 +75,23 @@ namespace bit {
       /// silently ignored.
       void stop();
 
+      //-----------------------------------------------------------------------
+      // Posting / Waiting (virtual)
+      //-----------------------------------------------------------------------
+    public:
+
+      /// \brief Posts a task in this dispatch queue
+      ///
+      /// \param task the task to post
+      void post_task( task task ) override;
+
       /// \brief Waits for a task \p task to be completed
       ///
       /// The calling thread participates in executing tasks while waiting
       /// for \p task to complete.
       ///
       /// \param task the task to wait for
-      void wait( task_handle task );
-
-      //-----------------------------------------------------------------------
-
-      /// \{
-      /// \brief Posts a task in this dispatch queue
-      ///
-      /// \param parent the parent task
-      /// \param fn the function to dispatch
-      /// \param args the arguments to forward to the function
-      template<typename Fn, typename...Args>
-      void post( Fn&& fn, Args&&...args );
-      template<typename Fn, typename...Args>
-      void post( const task& parent, Fn&& fn, Args&&...args );
-      /// \}
-
-      /// \brief Posts a task in this dispatch queue
-      ///
-      /// \param task the task to post
-      void post_task( task task );
-
-      /// \{
-      /// \brief Posts a task in this dispatch serial scheduler, waiting for the result
-      ///
-      /// \param parent the parent task
-      /// \param fn the function to dispatch
-      /// \param args the arguments to forward to the function
-      /// \return the result of the function
-      template<typename Fn, typename...Args>
-      stl::invoke_result_t<Fn,Args...>
-        post_and_wait( Fn&& fn, Args&&...args );
-      template<typename Fn, typename...Args>
-      stl::invoke_result_t<Fn,Args...>
-        post_and_wait( const task& parent, Fn&& fn, Args&&...args );
-      /// \}
+      void wait( task_handle task ) override;
 
       //-----------------------------------------------------------------------
       // Private Member Types
@@ -159,68 +134,7 @@ namespace bit {
       /// \return the task
       task get_task();
     };
-
-    //-------------------------------------------------------------------------
-    // Free Functions
-    //-------------------------------------------------------------------------
-
-    /// \brief Posts a task for execution to \p queue
-    ///
-    /// \param queue the serial_task_scheduler to post the task to
-    /// \param task the task to dispatch
-    void post_task( serial_task_scheduler& queue, task task );
-
-    /// \brief Waits for the task based on the handle
-    ///
-    /// \param queue the queue to wait on
-    /// \param task the handle to wait for
-    void wait( serial_task_scheduler& queue, task_handle task );
-
-    //-------------------------------------------------------------------------
-
-    /// \{
-    /// \brief Creates and posts a task to the specified \p queue
-    ///
-    /// \param queue the serial_task_scheduler to post the task to
-    /// \param parent the parent task
-    /// \param fn the function to invoke
-    /// \param args the arguments to forward to \p fn
-    template<typename Fn, typename...Args,
-             typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
-    void post( serial_task_scheduler& queue, Fn&& fn, Args&&...args );
-    template<typename Fn, typename...Args,
-             typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
-    void post( serial_task_scheduler& queue,
-               const task& parent, Fn&& fn, Args&&...args );
-    /// \}
-
-    //-------------------------------------------------------------------------
-
-    /// \{
-    /// \brief Creates, posts, and waits for the completion of a specified
-    ///        task.
-    ///
-    /// This makes the result appear synchronous, despite the fact that it
-    /// may be invoked on a different thread.
-    ///
-    /// \param queue the serial_task_scheduler to post the task to
-    /// \param parent the parent task
-    /// \param fn the function to invoke
-    /// \param args the arguments to forward to \p fn
-    /// \return the result of the invocation
-    template<typename Fn, typename...Args,
-             typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
-    stl::invoke_result_t<Fn,Args...>
-      post_and_wait( serial_task_scheduler& queue, Fn&& fn, Args&&...args );
-    template<typename Fn, typename...Args,
-             typename = decltype(std::declval<Fn>()(std::declval<Args>()...),void())>
-    stl::invoke_result_t<Fn,Args...>
-      post_and_wait( serial_task_scheduler& queue,
-                     const task& parent, Fn&& fn, Args&&...args );
-    /// \}
   } // namespace platform
 } // namespace bit
-
-#include "detail/serial_task_scheduler.inl"
 
 #endif /* BIT_PLATFORM_CONCURRENCY_SCHEDULERS_SERIAL_TASK_SCHEDULER_HPP */

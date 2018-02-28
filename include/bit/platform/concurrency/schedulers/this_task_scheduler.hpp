@@ -29,6 +29,28 @@ namespace bit {
       ~this_task_scheduler() = delete;
 
       //-----------------------------------------------------------------------
+      // Bound Object
+      //-----------------------------------------------------------------------
+    public:
+
+      /// \brief Binds an object to this task scheduler
+      ///
+      /// \param object the object to bind
+      /// \return the bound object
+      template<typename T>
+      static task_scheduler::bound_object<T> make_bound_object( T& object );
+
+      /// \brief Binds an object to this task scheduler, using \p alloc to
+      ///        allocate the shared state
+      ///
+      /// \param alloc the allocator to use for allocations
+      /// \param object the object to bind
+      /// \return the bound object
+      template<typename Allocator, typename T>
+      static task_scheduler::bound_object<T>
+        allocate_bound_object( const Allocator& alloc, T& object );
+
+      //-----------------------------------------------------------------------
       // Posting / Waiting
       //-----------------------------------------------------------------------
     public:

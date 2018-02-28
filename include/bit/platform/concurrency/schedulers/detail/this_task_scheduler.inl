@@ -7,6 +7,33 @@
 //=============================================================================
 
 //-----------------------------------------------------------------------------
+// Bound Objects
+//-----------------------------------------------------------------------------
+
+template<typename T>
+inline bit::platform::task_scheduler::bound_object<T>
+  bit::platform::this_task_scheduler::make_bound_object( T& object )
+{
+  auto scheduler = task_scheduler::g_active_scheduler;
+
+  assert( scheduler != nullptr );
+
+  return scheduler->make_bound_object( object );
+}
+
+template<typename Allocator, typename T>
+inline bit::platform::task_scheduler::bound_object<T>
+  bit::platform::this_task_scheduler::allocate_bound_object( const Allocator& alloc,
+                                                             T& object )
+{
+  auto scheduler = task_scheduler::g_active_scheduler;
+
+  assert( scheduler != nullptr );
+
+  return scheduler->allocate_bound_object( alloc, object );
+}
+
+//-----------------------------------------------------------------------------
 // Posting / Waiting
 //-----------------------------------------------------------------------------
 
